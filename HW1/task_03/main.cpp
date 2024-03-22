@@ -255,8 +255,15 @@ int main()
 {
 #ifdef MAKETEST
     test1();
+    test2();
+    test3();
 #else
-
+    int N = 0;
+    std::cin >> N;
+    int tst[N][2];
+    for( int i = 0; i < N; ++i )
+        std::cin >> tst[i][0] >> tst[i][1];
+    std::cout << dequeOperations( tst, N ) << std::endl;
 #if 0
     MyDeque md;
     md.printA();
