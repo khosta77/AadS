@@ -78,6 +78,12 @@ private:
                 buffer[( _new_head + j )] = _arr[i];
             _new_tail = ( ( _new_head + j ) == _size ) ? 0 : ( _new_head + j );
         }
+        if( _head == _tail )
+        {
+            for(i = 0, j = ( _size_buffer - 1 ); i < j; ++i)
+                buffer[( _new_head + i )] = _arr[i];
+            _new_tail = ( _size - 1);
+        }
 
         _head = _new_head;
         _tail = _new_tail;
@@ -98,7 +104,7 @@ public:
         delete[] _arr;
     }
 
-    void pushFront( [[maybe_unused]] int item )
+    void pushFront( int item )
     {
         if ( _arr[_head] == -1 )  // Случай когда кладем первый элемент
         {
@@ -106,21 +112,22 @@ public:
             return;
         }
 
+        if( ( _head - 1 ) == _tail )  // Случай когда хвост и голова пересеклись
+            reBuild();
+
         if( ( _head - 1 ) == -1 )  // Случай когда мы вышли за пределы 0
         {
             _head = ( _size - 1 );
-            if( _head == _tail )  // Проверка заполнения массива
+            if( _head  == _tail )  // Проверка заполнения массива
+            {
                 reBuild();
+                --_head;
+            }
             _arr[_head] = item;
             return;
         }
 
-        if( ( _head - 1 ) == _tail )  // Случай когда хвост и голова пересеклись
-        {
-            reBuild();
-        }
-
-        _arr[--_head] = item;    
+        _arr[--_head] = item;
     }
 
     int popFront()
@@ -144,7 +151,7 @@ public:
         return buffer_item;
     }
 
-    void pushBack( [[maybe_unused]] int item )
+    void pushBack( int item )
     {
         if(_arr[_head] == -1)  // Для начала поверим есть ли элементы в деке
         {
@@ -152,11 +159,20 @@ public:
             return;
         }
 
-        _arr[_tail++] = item;
-        if( _tail == _size )  // Проверим пересечение с максимумом
-            _tail = 0;
-        if( _tail == _head )  // Проверка пересечения с головой
+        if( ( _tail + 1 ) == _head )  // Проверяем пересечение с головой
             reBuild();
+
+        if( ( _tail + 1 ) >= _size )  // Проверяем пересеение с максимумом
+        {
+            if( _head == 0 )
+                reBuild();
+            _arr[_tail] = item;
+            _tail = 0;
+            return;
+        }
+
+        _arr[_tail] = item;
+        ++_tail;
     }
 
     int popBack()
@@ -171,7 +187,7 @@ public:
         return buffer_item;
     }
 
-#ifdef MAKETEST
+//#ifdef MAKETEST
     inline int getSize() const
     {
         return _size;
@@ -183,7 +199,7 @@ public:
             std::cout << _arr[i] << " ";
         std::cout << std::endl;
     }
-#endif
+//#endif
 };
 
 std::string dequeOperations( int ( *cmd )[2], const int& size )
@@ -249,6 +265,55 @@ void test3()
                            };
     assert( ( dequeOperations( tst, tst_size ) == "NO" ) );
 }
+
+void test4()
+{
+    const int tst_size = 5;
+    int tst[tst_size][2] = {
+                                { 1, 10 },
+                                { 4, 10 },
+                                { 2, -1 },
+                                { 4, -1 },
+                                { 3, 60 }
+                           };
+    assert( ( dequeOperations( tst, tst_size ) == "YES" ) );
+}
+
+void test5()
+{
+    MyDeque md;
+    for ( int i = 0; i < 100; ++i )
+        md.pushBack(i);
+    for ( int i = 99; i >= 0; --i )
+        assert( ( md.popBack() == i ) );
+}
+
+void test6()
+{
+    MyDeque md;
+    for ( int i = 0; i < 100; ++i )
+        md.pushBack(i);
+    for ( int i = 0; i < 100; ++i )
+        assert( ( md.popFront() == i ) );
+}
+
+void test7()  // Вот где собака зарыта
+{
+    MyDeque md;
+    for ( int i = 0; i < 100; ++i )
+        md.pushFront(i);
+    for ( int i = 0; i < 100; ++i )
+        assert( ( md.popBack() == i ) );
+}
+
+void test8()
+{
+    MyDeque md;
+    for ( int i = 0; i < 100; ++i )
+        md.pushFront(i);
+    for ( int i = 99; i >= 0; --i )
+        assert( ( md.popFront() == i ) );
+}
 #endif
 
 int main()
@@ -257,6 +322,11 @@ int main()
     test1();
     test2();
     test3();
+    test4();
+    test5();
+    test6();
+    test7();
+    test8();
 #else
     int N = 0;
     std::cin >> N;
@@ -264,14 +334,16 @@ int main()
     for( int i = 0; i < N; ++i )
         std::cin >> tst[i][0] >> tst[i][1];
     std::cout << dequeOperations( tst, N ) << std::endl;
-#if 0
+#if 0  // Была скачущая ошибка, решил эту гадость оставить, пока тесты не пройдет.
     MyDeque md;
+    //md.printA();
+    for ( int i = 0; i < 20; ++i )
+        md.pushFront(i);
     md.printA();
-    for ( int i = 0; i < 10; ++i )
-        md.pushBack(i);
-    md.printA();
-    for ( int i = 0; i < 10; ++i )
+    std::cout << md.getSize() << std::endl;
+    for ( int i = 20; i > 0; --i )
         std::cout << md.popFront() << " ";
+        //std::cout << ( md.popBack() == i ) << " ";
     std::cout << std::endl;
     //md.pushBack(10);
     //int b = md.popBack();
