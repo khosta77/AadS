@@ -179,11 +179,22 @@ public:
     {
         if(_arr[_head] == -1)  // Проверим есть ли вообще элементы.
             return -1;
-        --_tail;
-        if( _tail == -1 )
+
+        int buffer_item = 0;
+
+        if( ( _tail - 1 ) == -1 )
+        {
             _tail = ( _size - 1 );
-        const int buffer_item = _arr[_tail];
+            buffer_item = _arr[_tail];
+            _arr[_tail] = -1;
+            return buffer_item;
+        }
+
+        buffer_item = _arr[--_tail];
         _arr[_tail] = -1;
+        if( _tail == _head )
+            ++_tail;
+
         return buffer_item;
     }
 
@@ -314,6 +325,30 @@ void test8()
     for ( int i = 99; i >= 0; --i )
         assert( ( md.popFront() == i ) );
 }
+
+void test9()
+{
+    const int tst_size = 4;
+    int tst[tst_size][2] = {
+                                { 1, 9 },
+                                { 4, 9 },
+                                { 1, 8 },
+                                { 4, 8 }
+                           };
+    assert( ( dequeOperations( tst, tst_size ) == "YES" ) );
+}
+
+void test10()
+{
+    const int tst_size = 4;
+    int tst[tst_size][2] = {
+                                { 1, 10 },
+                                { 3, 11 },
+                                { 2, 10 },
+                                { 4, 11 }
+                           };
+    assert( ( dequeOperations( tst, tst_size ) == "YES" ) );
+}
 #endif
 
 int main()
@@ -327,24 +362,33 @@ int main()
     test6();
     test7();
     test8();
+    test9();
+    test10();
 #else
+#if 1
     int N = 0;
     std::cin >> N;
     int tst[N][2];
     for( int i = 0; i < N; ++i )
         std::cin >> tst[i][0] >> tst[i][1];
     std::cout << dequeOperations( tst, N ) << std::endl;
-#if 0  // Была скачущая ошибка, решил эту гадость оставить, пока тесты не пройдет.
+#else  // Была скачущая ошибка, решил эту гадость оставить, пока тесты не пройдет.
     MyDeque md;
-    //md.printA();
-    for ( int i = 0; i < 20; ++i )
-        md.pushFront(i);
+    md.pushFront(9);
+    std::cout << md.popBack() << std::endl;
+    md.pushFront(8);
     md.printA();
-    std::cout << md.getSize() << std::endl;
-    for ( int i = 20; i > 0; --i )
-        std::cout << md.popFront() << " ";
-        //std::cout << ( md.popBack() == i ) << " ";
-    std::cout << std::endl;
+    std::cout << md.popBack() << std::endl;
+
+    //md.printA();
+    //for ( int i = 0; i < 20; ++i )
+    //    md.pushFront(i);
+    //md.printA();
+    //std::cout << md.getSize() << std::endl;
+    //for ( int i = 20; i > 0; --i )
+    //    std::cout << md.popFront() << " ";
+    //    //std::cout << ( md.popBack() == i ) << " ";
+    //std::cout << std::endl;
     //md.pushBack(10);
     //int b = md.popBack();
     //std::cout << b << std::endl;
