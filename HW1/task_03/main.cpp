@@ -349,6 +349,35 @@ void test10()
                            };
     assert( ( dequeOperations( tst, tst_size ) == "YES" ) );
 }
+
+void test11()
+{
+    const int tst_size = 4;
+    int tst[tst_size][2] = {
+                                { 1, 10 },
+                                { 2, 10 },
+                                { 2, -1 },
+                                { 4, -1 }
+                           };
+    assert( ( dequeOperations( tst, tst_size ) == "YES" ) );
+}
+
+void test12()
+{
+    const int tst_size = 9;
+    int tst[tst_size][2] = {
+                                { 1, 1 },
+                                { 1, 2 },
+                                { 1, 3 },
+                                { 1, 4 },
+                                { 1, 5 },
+                                { 1, 6 },
+                                { 1, 7 },
+                                { 2, 7 },
+                                { 4, 1 }
+                           };
+    assert( ( dequeOperations( tst, tst_size ) == "YES" ) );
+}
 #endif
 
 int main()
@@ -364,6 +393,8 @@ int main()
     test8();
     test9();
     test10();
+    test11();
+    test12();
 #else
 #if 1
     int N = 0;
