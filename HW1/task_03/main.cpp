@@ -23,7 +23,7 @@ a = 4 - pop back
 */
 
 // На локальной машине, чтобы поверить
-#define MAKETEST
+//#define MAKETEST
 #ifdef MAKETEST
 #include <cassert>
 #endif
@@ -40,8 +40,7 @@ private:
     int* fillNewArray( const int& size, const int& item = -1 )
     {
         int* buffer = new int[size];
-        for( int i = 0; i < size; ++i )
-            buffer[i] = item;
+        for( int i = 0; i < size; buffer[i++] = item );
         return buffer;
     }
 
@@ -51,13 +50,11 @@ private:
         const int _size_buffer = _size;  // Создаем новый массив
         _size *= 2;
         int* buffer = fillNewArray( _size );
-        int _new_head = 0;
-        int _new_tail = 0;
-        int i = 0, j = 0;
+        int _new_head = 0, _new_tail = 0, i = 0, j = 0;
+
         for( i = 0; i <= mid; ++i )
             buffer[i] = _arr[i];
         _new_head = --i;
-
         for( i = (_size - 1), j = ( _size_buffer - 1 ); j >= _tail; --j, --i )
             buffer[i] = _arr[j];
         _new_tail = ++i;
@@ -81,7 +78,7 @@ public:
 
     void pushFront( int item )
     {        
-        if( ( ( ++_image_size ) == _size ) || ( _head == _tail ) )
+        if( ( ++_image_size ) == _size )
             reBuildNew();
         _head = ( ( _arr[0] != -1 ) ? ( ( (++_head) ? _head : ( _size - 1 ) ) % _size ) : 0 );
         _arr[_head] = item;
@@ -98,7 +95,7 @@ public:
 
     void pushBack( int item )
     {
-        if( ( ( ++_image_size ) == _size ) || ( _head == _tail ) )
+        if( ( ++_image_size ) == _size )
             reBuildNew();
         _tail = ( ( _arr[( _size - 1 )] != -1 ) ? ( --_tail ) : ( _size - 1 ) );
         _arr[_tail] = item;
@@ -106,7 +103,15 @@ public:
 
     int popBack()
     {
-        _tail = ( ( _arr[_tail] == -1 ) ? ( _size + _tail + 1 ) : ( _size + _tail ) ) % _size;
+        if( _arr[_tail] == -1 )
+        {
+            if( _tail - 1 == -1 )
+                _tail = ( _arr[( _size - 1 )] == -1 ) ? 1 : ( _size - 1 );
+            else if( ( _tail + 1 ) == ( _size ) )
+                _tail = ( ( _arr[( _size - 1 )] == -1 ) && ( _arr[0] == -1 ) ) ? 1 : 0;
+            else
+                _tail = ( _arr[( _tail - 1 )] == -1 ) ? ++_tail : --_tail;
+        }
         int buffer_item = _arr[_tail];
         _arr[_tail] = -1;
         _image_size--;
@@ -226,7 +231,6 @@ void test7()  // Вот где собака зарыта
     MyDeque md;
     for ( int i = 0; i < 100; ++i )
         md.pushFront(i);
-    md.printA();
     for ( int i = 0; i < 100; ++i )
         assert( ( md.popBack() == i ) );
 }
@@ -292,6 +296,40 @@ void test12()
                            };
     assert( ( dequeOperations( tst, tst_size ) == "YES" ) );
 }
+
+void test13()
+{
+    const int tst_size = 9;
+    int tst[tst_size][2] = {
+                                { 3, 1 },
+                                { 3, 2 },
+                                { 3, 3 },
+                                { 3, 4 },
+                                { 3, 5 },
+                                { 3, 6 },
+                                { 3, 7 },
+                                { 2, 1 },
+                                { 4, 7 }
+                           };
+    assert( ( dequeOperations( tst, tst_size ) == "YES" ) );
+}
+
+void test14()
+{
+    const int tst_size = 9;
+    int tst[tst_size][2] = {
+                                { 3, 1 },
+                                { 2, 1 },
+                                { 1, 2 },
+                                { 4, 2 },
+                                { 2, -1 },
+                                { 4, -1 },
+                                { 1, 3 },
+                                { 3, 4 },
+                                { 4, 4 }
+                           };
+    assert( ( dequeOperations( tst, tst_size ) == "YES" ) );
+}
 #endif
 
 int main()
@@ -309,33 +347,15 @@ int main()
     test10();
     test11();
     test12();
+    test13();
+    test14();
 #else
-#if 0
     int N = 0;
     std::cin >> N;
     int tst[N][2];
     for( int i = 0; i < N; ++i )
         std::cin >> tst[i][0] >> tst[i][1];
     std::cout << dequeOperations( tst, N ) << std::endl;
-#else  // Была скачущая ошибка, решил эту гадость оставить, пока тесты не пройдет.
-    MyDeque md;
-    
-    //md.printA();
-    for ( int i = 0; i < 8; ++i )
-    {
-        //md.pushBack(i);
-        (i % 2 == 1) ? md.pushFront(i) : md.pushBack(i);
-    }
-    md.printA();
-    //std::cout << md.getSize() << std::endl;
-    for ( int i = 8; i > 0; --i )
-        std::cout << md.popFront() << std::endl;
-    //    //std::cout << ( md.popBack() == i ) << " ";
-    //std::cout << std::endl;
-    //md.pushBack(10);
-    //int b = md.popBack();
-    //std::cout << b << std::endl;
-#endif
 #endif
     return 0;
 }
