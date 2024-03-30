@@ -28,8 +28,6 @@ a = 4 - pop back
 #include <cassert>
 #endif
 
-//// Код
-
 class MyDeque
 {
 private:
@@ -45,42 +43,6 @@ private:
         for( int i = 0; i < size; ++i )
             buffer[i] = item;
         return buffer;
-    }
-
-    void reBuild()
-    {
-        const int _size_buffer = _size;  // Создаем новый массив
-        _size *= 2;
-        int* buffer = fillNewArray( _size );
-    
-        int _new_head = ( _size / 2 ), _new_tail = _new_head;  // Задаем новые границы
-        int i = 0, j = 0;
-
-        if( _arr[( _size_buffer - 1 )] == -1 )
-        {
-            for( i = ( _head ); i < _tail; ++i, ++j)
-                buffer[( _new_tail + j )] = _arr[i];
-            _new_tail = ( _new_tail + j + 1 );
-        }
-        else
-        {
-            for( i = ( _head ); i < _size_buffer; ++i, ++j)
-                buffer[( _new_head + j )] = _arr[i];
-            for( i = 0; i < _tail; ++i, ++j )
-                buffer[( _new_head + j )] = _arr[i];
-            _new_tail = ( ( _new_head + j ) == _size ) ? 0 : ( _new_head + j );
-        }
-        if( _head == _tail )
-        {
-            for(i = 0, j = ( _size_buffer - 1 ); i < j; ++i)
-                buffer[( _new_head + i )] = _arr[i];
-            _new_tail = ( _size - 1);
-        }
-
-        _head = _new_head;
-        _tail = _new_tail;
-        delete[] _arr;
-        _arr = buffer;
     }
 
     void reBuildNew()
@@ -123,41 +85,6 @@ public:
             reBuildNew();
         _head = ( ( _arr[0] != -1 ) ? ( ( (++_head) ? _head : ( _size - 1 ) ) % _size ) : 0 );
         _arr[_head] = item;
-        std::cout << _tail << std::endl;
-#if 0
-        std::cout << "pushFront(" << item << ")" << std::endl;
-        if ( _arr[_head] == -1 )  // Случай когда кладем первый элемент
-        {
-            std::cout << "1" << std::endl;
-            _arr[_head] = item;
-            return;
-        }
-
-        if( ( _head - 1 ) == _tail )  // Случай когда хвост и голова пересеклись
-        {
-            std::cout << "2" << std::endl;
-            reBuild();
-        }
-
-        if( ( _head - 1 ) == -1 )  // Случай когда мы вышли за пределы 0
-        {
-            std::cout << "3" << std::endl;
-            _head = ( _size - 1 );
-            if( _head  == _tail )  // Проверка заполнения массива
-            {
-                reBuild();
-                --_head;
-            } 
-            else if( ( _size == 1 ) || ( _size == 2 ) )
-            {
-                reBuild();
-            }
-            _arr[_head] = item;
-            return;
-        }
-
-        _arr[--_head] = item;
-#endif
     }
 
     int popFront()
@@ -167,25 +94,6 @@ public:
         _arr[_head] = -1;
         _image_size--;
         return buffer_item;
-#if 0
-        if( _arr[_head] == -1 )
-            return -1;
-        int buffer_item = _arr[_head];
-        _arr[_head++] = -1;
-        if( _head == _tail )
-        {
-            _tail = ( ( _tail + 1 ) == _size ) ? 0 : ( _tail + 1 );
-            return buffer_item;
-        }
-
-        if( _head == _size )  // Можно сократить
-        {
-            if( _tail == 0 )
-                ++_tail;
-            _head = 0;
-        }
-        return buffer_item;
-#endif
     }
 
     void pushBack( int item )
@@ -194,39 +102,6 @@ public:
             reBuildNew();
         _tail = ( ( _arr[( _size - 1 )] != -1 ) ? ( --_tail ) : ( _size - 1 ) );
         _arr[_tail] = item;
-#if 0
-        if(_arr[_head] == -1)  // Для начала поверим есть ли элементы в деке
-        {
-            _arr[_head] = item;
-            return;
-        }
-
-        if( ( _tail + 1 ) == _head )  // Проверяем пересечение с головой
-        {
-            reBuild();
-        }
-
-        if( ( _tail + 1 ) >= _size )  // Проверяем пересеение с максимумом
-        {
-            if( _head == 0 )
-            {
-                reBuild();
-            }
-            if( _size == 2 )
-            {
-                reBuild();
-                _arr[( _size - 1 )] = item;
-                _tail = 0;
-                return;
-            }
-            _arr[_tail] = item;
-            _tail = 0;
-            return;
-        }
-
-        _arr[_tail] = item;
-        ++_tail;
-#endif
     }
 
     int popBack()
@@ -236,30 +111,8 @@ public:
         _arr[_tail] = -1;
         _image_size--;
         return buffer_item;
-#if 0
-        if(_arr[_head] == -1)  // Проверим есть ли вообще элементы.
-            return -1;
-
-        int buffer_item = 0;
-
-        if( ( _tail - 1 ) == -1 )
-        {
-            _tail = ( _size - 1 );
-            buffer_item = _arr[_tail];
-            _arr[_tail] = -1;
-            return buffer_item;
-        }
-
-        buffer_item = _arr[--_tail];
-        _arr[_tail] = -1;
-        if( _tail == _head )
-            ++_tail;
-
-        return buffer_item;
-#endif
     }
 
-//#ifdef MAKETEST
     inline int getSize() const
     {
         return _size;
@@ -271,7 +124,6 @@ public:
             std::cout << _arr[i] << " ";
         std::cout << std::endl;
     }
-//#endif
 };
 
 std::string dequeOperations( int ( *cmd )[2], const int& size )
