@@ -72,7 +72,7 @@ private:
         size_t i = I;
         size_t j = root(i);
 
-        while( ( i != 0 ) && ( _arr[i] < _arr[j] ) )
+        while( ( i != 0 ) && _cmp( _arr[i], _arr[j] ) )
         {
             i = localSwap( _arr[j], _arr[i], j );
             j = root(i);
@@ -85,10 +85,10 @@ private:
         size_t l = left(i);
         size_t r = right(i);
 
-        while( ( i < ( _image_size / 2 ) ) && ( ( _arr[l] < _arr[i] ) ||
-                    ( ( _arr[r] < _arr[i] ) && ( r < _image_size ) ) ) )
+        while( ( i < ( _image_size / 2 ) ) && ( _cmp( _arr[l], _arr[i] ) ||
+                     ( _cmp(_arr[r], _arr[i] ) && ( r < _image_size ) ) ) )
         {
-            i = ( ( _arr[l] < _arr[r] ) || ( r >= _image_size ) ) ? localSwap( _arr[l], _arr[i], l ) : 
+            i = ( _cmp( _arr[l], _arr[r] ) || ( r >= _image_size ) ) ? localSwap( _arr[l], _arr[i], l ) : 
                                                                     localSwap( _arr[r], _arr[i], r );
             l = left(i);
             r = right(i);
@@ -129,12 +129,6 @@ public:
 
 //// Тест
 #ifdef MAKETEST
-template <typename T = int>  // Взял с семинара
-bool defaultLess( const T &l, const T &r )
-{
-    return l < r;
-}
-
 template <typename T = int>
 void mySort( T *arr, int l, int r, bool ( *cmp )( const T &l, const T &r ) = defaultLess )
 {
@@ -186,7 +180,7 @@ void fillArrFromHeap( MyHeap<T>& mh, T* arr, const size_t& N )
 }
 
 template <typename T = int>
-bool tester( MyHeap<T>& mh, const size_t& size )
+bool tester( MyHeap<T>& mh, const size_t& size, bool ( *cmp )( const T &l, const T &r ) = defaultLess )
 {
     T *arr_test = new T[size];
     T *arr_heap = new T[size];
@@ -194,61 +188,73 @@ bool tester( MyHeap<T>& mh, const size_t& size )
     fillHeapFromArr<T>( mh, &arr_test[0], size );
     fillArrFromHeap<T>( mh, &arr_heap[0], size );
     mySort<T>( &arr_test[0], 0, ( size - 1 ) );
-    return arrComparator<T>( &arr_test[0], &arr_heap[0], size );
+    return arrComparator<T>( &arr_test[0], &arr_heap[0], size, cmp );
 }
 
 void test1()
 {
-   MyHeap mh;
-   assert( tester( mh, 1 ) );
+    MyHeap mh;
+    assert( tester( mh, 1 ) );
 }
 
 void test2()
 {
-   MyHeap mh;
-   assert( tester( mh, 2 ) );
+    MyHeap mh;
+    assert( tester( mh, 2 ) );
 }
 
 void test3()
 {
-   MyHeap mh;
-   assert( tester( mh, 3 ) );
+    MyHeap mh;
+    assert( tester( mh, 3 ) );
 }
 
 void test4()
 {
-   MyHeap mh;
-   assert( tester( mh, 5 ) );
+    MyHeap mh;
+    assert( tester( mh, 5 ) );
 }
 
 void test5()
 {
-   MyHeap mh;
-   assert( tester( mh, 16 ) );
+    MyHeap mh;
+    assert( tester( mh, 16 ) );
 }
 
 void test6()
 {
-   MyHeap mh;
-   assert( tester( mh, 100 ) );
+    MyHeap mh;
+    assert( tester( mh, 100 ) );
 }
 
 void test7()
 {
-   MyHeap mh;
-   assert( tester( mh, 1000 ) );
+    MyHeap mh;
+    assert( tester( mh, 1000 ) );
 }
 
 void test8()
 {
-   MyHeap<float> mh;
-   assert( tester<float>( mh, 1000 ) );
+    MyHeap<float> mh;
+    assert( tester<float>( mh, 1000 ) );
 }
 
 void test9()
 {
-   MyHeap<double> mh;
-   assert( tester<double>( mh, 1000 ) );
+    MyHeap<double> mh;
+    assert( tester<double>( mh, 1000 ) );
+}
+
+template <typename T = int>  // Взял с семинара
+bool defaultMore( const T &l, const T &r )
+{
+    return l > r;
+}
+
+void test10()
+{
+    MyHeap mh( defaultMore );
+    assert( tester( mh, 1000, defaultMore ) );
 }
 
 #endif
@@ -265,15 +271,7 @@ int main()
     test7();
     test8();
     test9();
-/*
-    MyHeap mh;
-    for( int i = 10; i > 0; --i )
-        mh.push(i);
-
-    for( int i = 0; i < 10; ++i )
-        std::cout << mh.pop() << " ";
-    std::cout << std::endl;
-*/
+    test10();
 #else
     size_t N = 0, SIZE = 0;
     MyHeap mh;
