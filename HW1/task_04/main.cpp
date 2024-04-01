@@ -22,6 +22,11 @@
 #include <random>
 static std::random_device engine;
 #endif
+template <typename T = int>  // Взял с семинара
+bool defaultLess( const T &l, const T &r )
+{
+    return l < r;
+}
 
 //// Код
 template <typename T = int>
@@ -30,6 +35,7 @@ class MyHeap
 private:
     size_t _size;
     size_t _image_size;
+    bool (*_cmp)( const T&, const T& );
     T* _arr;
 
     inline void mySwap( T& l, T& r )
@@ -90,7 +96,7 @@ private:
     }
 
 public:
-    MyHeap() : _size(1), _image_size(0)
+    MyHeap( bool ( *cmp )( const T& l, const T& r ) = defaultLess ) : _size(1), _image_size(0), _cmp(cmp)
     {
         _arr = new T[_size];
     }
