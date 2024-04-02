@@ -46,23 +46,29 @@ private:
 
     void reBuildNew()
     {
+        const int mid = _head;
+        const int _size_buffer = _size;  // Создаем новый массив
         _size *= 2;
-        int* buffer = new int[_size];
-        for ( int i = 0; i < _image_size; ++i )
-            buffer[i] = _arr[( ( _head + i ) % _image_size )];
+        int* buffer = fillNewArray( _size );
+        int _new_head = 0, _new_tail = 0, i = 0, j = 0;
 
+        for( i = 0; i <= mid; ++i )
+            buffer[i] = _arr[i];
+        _new_head = --i;
+        for( i = (_size - 1), j = ( _size_buffer - 1 ); j >= _tail; --j, --i )
+            buffer[i] = _arr[j];
+        _new_tail = ++i;
+
+        _head = _new_head;
+        _tail = _new_tail;
         delete[] _arr;
         _arr = buffer;
-        printA();
-        _head = 0;
-        _tail = (_size - 1);
-
     }
 
 public:
-    explicit MyDeque(const int& resize = 1) : _size(resize), _image_size(0), _head(0), _tail(-1)
+    explicit MyDeque(const int& resize = 1) : _size(resize), _image_size(0), _head(0), _tail(( _size - 1 ))
     {
-        _arr = new int[_size];
+        _arr = fillNewArray( _size );
     }
 
     ~MyDeque()
@@ -72,45 +78,44 @@ public:
 
     void pushFront( int item )
     {        
-        if (_size == _image_size) {
+        if( ( ++_image_size ) == _size )
             reBuildNew();
-        }
-        _head = (_head - 1 + _size) % _size;
+        _head = ( ( _arr[0] != -1 ) ? ( ( (++_head) ? _head : ( _size - 1 ) ) % _size ) : 0 );
         _arr[_head] = item;
-        ++_image_size;
     }
 
     int popFront()
     {
-        if (_image_size == 0) {
-            return -1;
-        }
-        int buffer = _arr[_head];
-        _head = (_head + 1) % _size;
-        --_image_size;
-        return buffer;
+        _head = ( ( _arr[_head] != -1 ) ? _head : ( _size + _head - 1 ) % _size );
+        int buffer_item = _arr[_head];
+        _arr[_head] = -1;
+        _image_size--;
+        return buffer_item;
     }
 
     void pushBack( int item )
     {
-        if (_size == _image_size) {
+        if( ( ++_image_size ) == _size )
             reBuildNew();
-        }
-        _tail = (_tail + 1) % _size;
+        _tail = ( ( _arr[( _size - 1 )] != -1 ) ? ( --_tail ) : ( _size - 1 ) );
         _arr[_tail] = item;
-        ++_image_size;
     }
 
     int popBack()
     {
-        if (_image_size == 0) {
-            return -1;
+        if( _arr[_tail] == -1 )
+        {
+            if( _tail - 1 == -1 )
+                _tail = ( _arr[( _size - 1 )] == -1 ) ? 1 : ( _size - 1 );
+            else if( ( _tail + 1 ) == ( _size ) )
+                _tail = ( ( _arr[( _size - 1 )] == -1 ) && ( _arr[0] == -1 ) ) ? 1 : 0;
+            else
+                _tail = ( _arr[( _tail - 1 )] == -1 ) ? ++_tail : --_tail;
         }
-        int buffer = _arr[_tail];
-        _tail = (_tail - 1 + _size) % _size;
-        --_image_size;
-
-        return buffer;
+        int buffer_item = _arr[_tail];
+        _arr[_tail] = -1;
+        _image_size--;
+        return buffer_item;
     }
 
     inline int getSize() const
