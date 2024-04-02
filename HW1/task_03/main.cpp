@@ -28,36 +28,60 @@ a = 4 - pop back
 #include <cassert>
 #endif
 
+/*
+h - head
+t - tail
+| 0| 1| 2| 3| 4| 5| 6| 7| 9|
++--+--+--+--+--+--+--+--+--+
+|-1|-1|-1|-1|10|02|32|-1|-1|
++--+--+--+--+--+--+--+--+--+
+|  |  |  |  |h |  |  | t|  |
+*/
 class MyDeque
 {
 private:
     int _size;
-    int _image_size;
+    int *_arr;
     int _head;
     int _tail;
-    int *_arr;
 
     int* fillNewArray( const int& size, const int& item = -1 )
     {
         int* buffer = new int[size];
-        for( int i = 0; i < size; buffer[i++] = item );
+        for( int i = 0; i < size; ++i )
+            buffer[i] = item;
         return buffer;
     }
 
-    void reBuildNew()
+    void reBuild()
     {
-        const int mid = _head;
         const int _size_buffer = _size;  // Создаем новый массив
         _size *= 2;
         int* buffer = fillNewArray( _size );
-        int _new_head = 0, _new_tail = 0, i = 0, j = 0;
+    
+        int _new_head = ( _size / 2 ), _new_tail = _new_head;  // Задаем новые границы
+        int i = 0, j = 0;
 
-        for( i = 0; i <= mid; ++i )
-            buffer[i] = _arr[i];
-        _new_head = --i;
-        for( i = (_size - 1), j = ( _size_buffer - 1 ); j >= _tail; --j, --i )
-            buffer[i] = _arr[j];
-        _new_tail = ++i;
+        if( _arr[( _size_buffer - 1 )] == -1 )
+        {
+            for( i = ( _head ); i < _tail; ++i, ++j)
+                buffer[( _new_tail + j )] = _arr[i];
+            _new_tail = ( _new_tail + j + 1 );
+        }
+        else
+        {
+            for( i = ( _head ); i < _size_buffer; ++i, ++j)
+                buffer[( _new_head + j )] = _arr[i];
+            for( i = 0; i < _tail; ++i, ++j )
+                buffer[( _new_head + j )] = _arr[i];
+            _new_tail = ( ( _new_head + j ) == _size ) ? 0 : ( _new_head + j );
+        }
+        if( _head == _tail )
+        {
+            for(i = 0, j = ( _size_buffer - 1 ); i < j; ++i)
+                buffer[( _new_head + i )] = _arr[i];
+            _new_tail = ( _size - 1);
+        }
 
         _head = _new_head;
         _tail = _new_tail;
@@ -66,9 +90,11 @@ private:
     }
 
 public:
-    explicit MyDeque(const int& resize = 1) : _size(resize), _image_size(0), _head(0), _tail(( _size - 1 ))
+    explicit MyDeque(const int& resize = 8) : _size(resize)
     {
         _arr = fillNewArray( _size );
+        _head = ( _size / 2 );
+        _tail = ( _head + 1 );
     }
 
     ~MyDeque()
@@ -77,44 +103,96 @@ public:
     }
 
     void pushFront( int item )
-    {        
-        if( ( ++_image_size ) == _size )
-            reBuildNew();
-        _head = ( ( _arr[0] != -1 ) ? ( ( (++_head) ? _head : ( _size - 1 ) ) % _size ) : 0 );
-        _arr[_head] = item;
+    {
+        if ( _arr[_head] == -1 )  // Случай когда кладем первый элемент
+        {
+            _arr[_head] = item;
+            return;
+        }
+
+        if( ( _head - 1 ) == _tail )  // Случай когда хвост и голова пересеклись
+            reBuild();
+
+        if( ( _head - 1 ) == -1 )  // Случай когда мы вышли за пределы 0
+        {
+            _head = ( _size - 1 );
+            if( _head  == _tail )  // Проверка заполнения массива
+            {
+                reBuild();
+                --_head;
+            }
+            _arr[_head] = item;
+            return;
+        }
+
+        _arr[--_head] = item;
     }
 
     int popFront()
     {
-        _head = ( ( _arr[_head] != -1 ) ? _head : ( _size + _head - 1 ) % _size );
+        if( _arr[_head] == -1 )
+            return -1;
         int buffer_item = _arr[_head];
-        _arr[_head] = -1;
-        _image_size--;
+        _arr[_head++] = -1;
+        if( _head == _tail )
+        {
+            _tail = ( ( _tail + 1 ) == _size ) ? 0 : ( _tail + 1 );
+            return buffer_item;
+        }
+
+        if( _head == _size )  // Можно сократить
+        {
+            if( _tail == 0 )
+                ++_tail;
+            _head = 0;
+        }
         return buffer_item;
     }
 
     void pushBack( int item )
     {
-        if( ( ++_image_size ) == _size )
-            reBuildNew();
-        _tail = ( ( _arr[( _size - 1 )] != -1 ) ? ( --_tail ) : ( _size - 1 ) );
+        if(_arr[_head] == -1)  // Для начала поверим есть ли элементы в деке
+        {
+            _arr[_head] = item;
+            return;
+        }
+
+        if( ( _tail + 1 ) == _head )  // Проверяем пересечение с головой
+            reBuild();
+
+        if( ( _tail + 1 ) >= _size )  // Проверяем пересеение с максимумом
+        {
+            if( _head == 0 )
+                reBuild();
+            _arr[_tail] = item;
+            _tail = 0;
+            return;
+        }
+
         _arr[_tail] = item;
+        ++_tail;
     }
 
     int popBack()
     {
-        if( _arr[_tail] == -1 )
+        if(_arr[_head] == -1)  // Проверим есть ли вообще элементы.
+            return -1;
+
+        int buffer_item = 0;
+
+        if( ( _tail - 1 ) == -1 )
         {
-            if( _tail - 1 == -1 )
-                _tail = ( _arr[( _size - 1 )] == -1 ) ? 1 : ( _size - 1 );
-            else if( ( _tail + 1 ) == ( _size ) )
-                _tail = ( ( _arr[( _size - 1 )] == -1 ) && ( _arr[0] == -1 ) ) ? 1 : 0;
-            else
-                _tail = ( _arr[( _tail - 1 )] == -1 ) ? ++_tail : --_tail;
+            _tail = ( _size - 1 );
+            buffer_item = _arr[_tail];
+            _arr[_tail] = -1;
+            return buffer_item;
         }
-        int buffer_item = _arr[_tail];
+
+        buffer_item = _arr[--_tail];
         _arr[_tail] = -1;
-        _image_size--;
+        if( _tail == _head )
+            ++_tail;
+
         return buffer_item;
     }
 
@@ -360,14 +438,15 @@ void test15()
 int main()
 {
 #ifdef MAKETEST
+#if 1
     test1();
     test2();
     test3();
     test4();
-//    test5();
-//    test6();
-//    test7();
-//    test8();
+    test5();
+    test6();
+    test7();
+    test8();
     test9();
     test10();
     test11();
@@ -375,6 +454,22 @@ int main()
     test13();
     test14();
     test15();
+#endif
+/*
+    MyDeque md;
+    md.pushBack(119);
+    md.printA();
+    std::cout << "pop Back " << md.popBack() << std::endl;
+    md.printA();
+    md.pushFront(24);
+    md.printA();
+    md.pushFront(122);
+    md.printA();
+    std::cout << "pop Back " << md.popBack() << " == 24" << std::endl;
+    md.pushFront(87);
+    md.printA();
+    std::cout << "pop Back " << md.popBack() << " == 122" << std::endl;
+*/
 #else
     int N = 0;
     std::cin >> N;
