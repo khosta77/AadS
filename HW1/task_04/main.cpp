@@ -17,166 +17,18 @@
 */
 
 // На локальной машине, чтобы поверить
-#define MAKETEST
+//#define MAKETEST
 #ifdef MAKETEST
 #include <random>
 static std::random_device engine;
 #endif
+
 template <typename T = int>  // Взял с семинара
 bool defaultLess( const T &l, const T &r )
 {
     return l < r;
 }
 
-class ArrayException : public std::exception
-{
-public:
-    explicit ArrayException( const std::string &msg ) : m_msg( msg ) {}
-    const char *what() const noexcept override
-    {
-		return m_msg.c_str();
-	}
-
-private:
-    std::string m_msg;
-};
-
-class InvalidArrayStream : public ArrayException
-{
-public:
-    InvalidArrayStream() : ArrayException("Произошла ошибка при чтении из потока") {}
-};
-
-template <typename T>
-class OutOfRange : public ArrayException
-{
-public:
-    OutOfRange( const size_t& i, const T& myarray ) : ArrayException(
-        "Индекс (" + std::to_string( i )  + ") выход за границы Массива. Размер массива [" +
-        std::to_string( myarray.size() ) + "]") {}
-};
-
-template <typename T = int>
-class MyArray  // При множественном вложении явно укзаать тип данных!!!!!
-{
-private:
-    size_t _size;
-    T* _arr;
-
-public:
-    MyArray( const size_t& resize = 0 ) noexcept : _size(resize)  // Тут что то explicit лишнее
-    {
-        _arr = new T[_size];
-    }
-
-    MyArray( const MyArray<T>& rhs ) noexcept
-    {
-        _size = rhs.size();
-        delete[] _arr;
-        _arr = new T[_size];
-        for( size_t i = 0; i < _size; ++i )
-            _arr[i] = rhs._arr[i];
-    }
-
-    MyArray( std::istream& is )
-    {
-        _size = 0;
-        is >> _size;
-        _arr = new T[_size];
-        for( size_t i = 0; i < _size; ++i )
-            if ( !( is >> _arr[i] ) )
-            {
-                delete[] _arr;
-                throw InvalidArrayStream();
-            }
-    }
-
-    MyArray<T>& operator=( const MyArray<T> &rhs ) noexcept
-    {
-	    if ( &rhs != this ) {
-            delete[] _arr;
-            _size = rhs.size();
-            _arr = new T[_size];
-		    for (size_t i = 0; i < _size; ++i)
-                this->_arr[i] = rhs._arr[i];
-	    }
-        return *this;
-    }
-
-    ~MyArray()
-    {
-        delete[] _arr;
-    }
-
-    T& operator[]( const size_t& i ) const noexcept
-    {
-        return _arr[i];
-    }
-
-    T& operator[]( const size_t& i ) noexcept
-    {
-        return _arr[i];
-    }
-
-    T& at( const size_t& i ) {
-        if ( i > _size )
-            throw OutOfRange( i, this );
-        return _arr[i];
-    }
-
-    T& at( const size_t& i ) const {
-        if ( i > _size )
-            throw OutOfRange( i, this );
-        return _arr[i];
-    }
-
-    bool operator!=( const MyArray<T>& rhs ) const
-    {
-        if( this->_size != rhs._size )
-            return true;
-        for( size_t i = 0; i < _size; ++i )
-            if( this->_arr[i] != rhs._arr[i] )
-                return true;
-        return false;
-    }
-
-    bool empty() const noexcept
-    {
-        return ( _size == 0 );
-    }
-
-    size_t size() const noexcept
-    { 
-        return this->_size;
-    }
-
-    void clear() noexcept
-    {
-        delete[] _arr;
-    }
-
-};
-
-template < typename T = int >
-std::istream& operator>>( std::istream& is, MyArray<T>& obj )
-{
-    MyArray<T> buf(is);  // ужасно сделално.
-    obj = buf;
-    return is;
-}
-
-// friend
-template < typename T = int >
-std::ostream& operator<<( std::ostream& os, const MyArray<T>& arr ) noexcept
-{
-    //os << arr.size() << '\n';
-    for ( size_t i = 0; i < arr.size(); ++i )
-        os << arr[i] << ' ';
-    os << '\n';
-    return os;
-}
-
-//// Код
 template <typename T = int>
 class MyHeap
 {
@@ -296,73 +148,70 @@ public:
     }
 };
 
-// friend
-std::ostream& operator<<( std::ostream& os, const MyPair< size_t, int >& mypair )
+void freeArrays( int** arrs, int* arr, size_t* M, size_t* cnt, const size_t& N )
 {
-    os << mypair._l << ' ' << mypair._r << '\n';
-    return os;
-}
-
-
-// friend
-std::ostream& operator<<( std::ostream& os, const MyPair< size_t, MyArray<int> >& mypair )
-{
-    os << "Группа: " << mypair._l << '\n';
-    os << mypair._r;
-    return os;
-}
-
-MyPair< size_t, MyArray<int> > readPair( const size_t& num )
-{
-    MyPair< size_t, MyArray<int> > mypair;
-    mypair._l = num;
-    std::cin >> mypair._r;
-    return mypair;
-}
-
-MyArray< MyPair< size_t, MyArray<int> > > readPairs()
-{
-    size_t N = 0;
-    std::cin >> N;
-    MyArray< MyPair< size_t, MyArray<int> > > mypairs(N);
     for( size_t i = 0; i < N; ++i )
-        mypairs[i] = readPair( i );
-    return mypairs;
+    {
+        delete[] arrs[i];
+    }
+    delete[] arrs;
+    delete[] arr;
+    delete[] M;
+    delete[] cnt;
 }
 
-size_t getSizeFromPairs( const MyArray< MyPair< size_t, MyArray<int> > >& df )
+template <typename T>
+void printArray( T* arr, const size_t& N )
+{
+    for( size_t i = 0; i < N; ++i )
+        std::cout << arr[i] << ' ';
+    std::cout << std::endl;
+}
+
+template <typename T>
+void printArrays( T** arrs, size_t* M, const size_t& N )
+{
+    for( size_t i = 0; i < N; ++i )
+    {
+        printArray<T>( arrs[i], M[i] );
+    }
+}
+
+size_t getSize( size_t* M, const size_t& N )
 {
     size_t size = 0;
-    for( size_t i = 0; i < df.size(); ++i)
-        size += df[i]._r.size();
+    for( size_t i = 0; i < N; ++i)
+        size += M[i];
     return size;
 }
 
-MyArray<int> revolver( const MyArray< MyPair< size_t, MyArray<int> > >& df )
+void pushFirstCnt( int** arrs, size_t* M, size_t* cnt, MyHeap< MyPair< size_t, int > >& heap,
+                   const size_t& N )
 {
-    MyHeap< MyPair< size_t, int > > heap;
-    MyArray<size_t> cnt(df.size());
-    for( size_t i = 0; i < cnt.size(); ++i)
+    for( size_t i = 0; i < N; ++i )
     {
-        heap.push( MyPair< size_t, int >( df[i]._l, df[i]._r[0] ) );
+        heap.push( MyPair< size_t, int >( M[i], arrs[i][0] ) );
         ++cnt[i];
     }
+}
 
-    const size_t SIZE = getSizeFromPairs(df);
-    MyArray<int> sortedArray(SIZE);
+void revolverNew( int** arrs, size_t* M, size_t* cnt, int* arr,
+                  MyHeap< MyPair< size_t, int > >& heap, const size_t& N, const size_t& SIZE )
+{
     MyPair< size_t, int > mypair;
     for( size_t i = 0, index = 0; i < SIZE; ++i )
     {
         mypair = heap.pop();  // O(K), Прокручиваем значния
         index = mypair._l;
-        sortedArray[i] = mypair._r;
-        if( cnt[index] < df[index]._r.size() )
+        arr[i] = mypair._r;
+        if( cnt[index] < M[index] )
         {
-            heap.push( MyPair< size_t, int >( index, df[index]._r[cnt[index]] ) );
+            heap.push( MyPair< size_t, int >( index, arrs[index][cnt[index]] ) );
             ++cnt[index];
         }
+        printArray<size_t>( cnt, N);
     }
-    return sortedArray;
+
 }
 
 //// Тест
@@ -494,52 +343,8 @@ void test10()
     MyHeap mh( defaultMore );
     assert( tester( mh, 1000, defaultMore ) );
 }
-
-void test11()
-{
-    MyArray<MyPair<size_t, MyArray<int>>> df = {
-        MyPair<size_t, MyArray<int>>(0, MyArray<int>(1)),
-        MyPair<size_t, MyArray<int>>(1, MyArray<int>(2)),
-        MyPair<size_t, MyArray<int>>(2, MyArray<int>(3))
-    };  // Это ужасно, надо бы переписать
-    for( size_t i = 0; i < df.size(); ++i )
-    {
-        for( size_t j = 0; j < df[i]._r.size(); ++j)
-        {
-            df[i]._r[j] = genT<int>(-100, 100);
-        }
-    }
-/*
-    MyArray<int> a1(1);
-    a1[0] = 6;
-    MyPair< size_t, MyArray<int> > p1(0, a1);
-    MyArray<int> a2(2);
-    a2[0] = 50;
-    a2[1] = 90;
-    MyPair< size_t, MyArray<int> > p2(1, a2);
-    MyArray<int> a3(3);
-    a3[0] = 1;
-    a3[1] = 10;
-    a3[2] = 70;
-    MyPair< size_t, MyArray<int> > p3(2, a3);
-    df[0] = p1;
-    df[1] = p2;
-    df[3] = p3;
-    MyArray<int> otvet(6);
-    otvet[0] = 1;
-    otvet[1] = 6;
-    otvet[2] = 10;
-    otvet[3] = 50;
-    otvet[4] = 70;
-    otvet[5] = 90;
-*/
-    auto res = revolver(df);
-    //assert( ( res.size() == otvet.size() ) );
-    for( size_t i = 1; i < res.size(); ++i )
-        assert( ( res[( i - 1 )] < res[i] ) );
-}
-
 #endif
+
 int main()
 {
 #ifdef MAKETEST
@@ -553,30 +358,36 @@ int main()
     test8();
     test9();
     test10();
-    test11();
 #else
-    auto df = readPairs();
-    auto array = revolver( df );
-    std::cout << array;
-/*
-    size_t N = 0, SIZE = 0;
-    MyHeap mh;
-    int buffer;
+    // Считываем
+    size_t N = 0;
     std::cin >> N;
-    for( size_t i = 0, j = 0, k = 0; i < N; ++i)
+    int** arrs = new int*[N];
+    size_t* M = new size_t[N];  // должна быть упорядочена по возрастанию
+    for( size_t i = 0; i < N; ++i )
     {
-        std::cin >> j;
-        for( k = 0; k < j; ++k )
-        {
-            std::cin >> buffer;
-            mh.push(buffer);
-        }
-        SIZE += j;
+        std::cin >> M[i];
+        arrs[i] = new int[M[i]];
+        for( size_t j = 0; j < M[i]; ++j )
+            std::cin >> arrs[i][j];
     }
-    for( size_t i = 0; i < SIZE; ++i )
-        std::cout << mh.pop() << " ";
-    std::cout << std::endl;
-*/
+    //printArrays<int>( arrs, M, N );
+
+    // Заполнеям кучу O(K)
+    MyHeap< MyPair< size_t, int > > heap;
+    size_t* cnt = new size_t[N];
+    pushFirstCnt( arrs, M, cnt, heap, N );
+    //printArray<size_t>( cnt, N );
+
+    // Вычисляем общий размер
+    const size_t SIZE = getSize( M, N );
+    int* arr = new int[SIZE];
+    std::cout << "In revolver" << std::endl;
+    revolverNew( arrs, M, cnt, arr, heap, N, SIZE );
+    printArray<int>( arr, SIZE );
+
+    // Очистка памяти
+    freeArrays( arrs, arr, M, cnt, N );
 #endif
     return 0;
 }
