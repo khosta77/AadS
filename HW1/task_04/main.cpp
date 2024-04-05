@@ -185,12 +185,12 @@ size_t getSize( size_t* M, const size_t& N )
     return size;
 }
 
-void pushFirstCnt( int** arrs, size_t* M, size_t* cnt, MyHeap< MyPair< size_t, int > >& heap,
+void pushFirstCnt( int** arrs, size_t* cnt, MyHeap< MyPair< size_t, int > >& heap,
                    const size_t& N )
 {
     for( size_t i = 0; i < N; ++i )
     {
-        heap.push( MyPair< size_t, int >( M[i], arrs[i][0] ) );
+        heap.push( MyPair< size_t, int >( i, arrs[i][0] ) );
         ++cnt[i];
     }
 }
@@ -209,7 +209,6 @@ void revolverNew( int** arrs, size_t* M, size_t* cnt, int* arr,
             heap.push( MyPair< size_t, int >( index, arrs[index][cnt[index]] ) );
             ++cnt[index];
         }
-        printArray<size_t>( cnt, N);
     }
 
 }
@@ -343,6 +342,16 @@ void test10()
     MyHeap mh( defaultMore );
     assert( tester( mh, 1000, defaultMore ) );
 }
+
+bool arrEqual( int* l, int* r, const size_t& N )
+{
+    for( size_t i = 0; i < N; ++i )
+    {
+        if( l[i] != r[i] )
+            return false;
+    }
+    return true;
+}
 #endif
 
 int main()
@@ -363,7 +372,7 @@ int main()
     size_t N = 0;
     std::cin >> N;
     int** arrs = new int*[N];
-    size_t* M = new size_t[N];  // должна быть упорядочена по возрастанию
+    size_t* M = new size_t[N];
     for( size_t i = 0; i < N; ++i )
     {
         std::cin >> M[i];
@@ -371,18 +380,15 @@ int main()
         for( size_t j = 0; j < M[i]; ++j )
             std::cin >> arrs[i][j];
     }
-    //printArrays<int>( arrs, M, N );
 
     // Заполнеям кучу O(K)
     MyHeap< MyPair< size_t, int > > heap;
     size_t* cnt = new size_t[N];
-    pushFirstCnt( arrs, M, cnt, heap, N );
-    //printArray<size_t>( cnt, N );
+    pushFirstCnt( arrs, cnt, heap, N );
 
     // Вычисляем общий размер
     const size_t SIZE = getSize( M, N );
     int* arr = new int[SIZE];
-    std::cout << "In revolver" << std::endl;
     revolverNew( arrs, M, cnt, arr, heap, N, SIZE );
     printArray<int>( arr, SIZE );
 
