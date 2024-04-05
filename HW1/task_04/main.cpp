@@ -342,16 +342,6 @@ void test10()
     MyHeap mh( defaultMore );
     assert( tester( mh, 1000, defaultMore ) );
 }
-
-bool arrEqual( int* l, int* r, const size_t& N )
-{
-    for( size_t i = 0; i < N; ++i )
-    {
-        if( l[i] != r[i] )
-            return false;
-    }
-    return true;
-}
 #endif
 
 int main()
