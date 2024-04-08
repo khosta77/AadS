@@ -183,6 +183,9 @@ int main()
 {
 #ifdef MAKETEST
     testFromFile( "in01.txt", "out01.txt" );
+    testFromFile( "in02.txt", "out02.txt" );
+    testFromFile( "in03.txt", "out03.txt" );
+
 #else
     size_t size = 0;
     std::cin >> tN;
