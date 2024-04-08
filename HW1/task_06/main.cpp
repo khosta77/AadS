@@ -78,15 +78,15 @@ private:
         const size_t pivotIndex = genPivot();
         const T pivot = _arr[pivotIndex];
         mySwap( _arr[pivotIndex], _arr[_to] );
-        size_t i = _from, j = _to;
+        size_t i = _to, j = _to;
         while( _cmp( _arr[_to], _arr[i] ) )
         {
-            while( ( i < _to ) && ( _cmp( _arr[i], pivot ) || _arr[i] == pivot ) )
-                ++i;
-            while( ( ( j < _to ) && _cmp( pivot, _arr[j] ) ) || ( j < i ) )
-                ++j;
+            while( ( i > _from ) && ( _cmp( pivot, _arr[i] ) || _arr[i] == pivot ) )
+                --i;
+            while( ( ( j > _from ) && _cmp( _arr[j], pivot ) ) || ( j > i ) )
+                --j;
 
-            ( ( j < _to ) && _cmp( _arr[j], _arr[i] ) ) ? mySwap( _arr[i++], _arr[j++] ) :
+            ( ( j > _from ) && _cmp( _arr[i], _arr[j] ) ) ? mySwap( _arr[i--], _arr[j--] ) :
                 mySwap( _arr[i], _arr[_to] );
         }
         return i;
