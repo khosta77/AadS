@@ -1,5 +1,7 @@
 #include <iostream>
 #include <string>
+#include <fstream>
+
 /*
 // Задача 3.2
 Во всех задачах из следующего списка следует написать структуру данных, обрабатывающую команды push* и pop*.
@@ -104,10 +106,14 @@ public:
 
     void pushFront( int item )
     {
+        //printA();
+        //std::cout << "in pushFront it = " << item << " _t = " << _tail << " _hD = " << _head << " ar[_h] = " << _arr[_head];
         if ( _arr[_head] == -1 )  // Случай когда кладем первый элемент
         {
-
             _arr[_head] = item;
+            if(_head == _tail)
+                _tail = ( _tail + 1) % _size;
+            //std::cout << std::endl;
             return;
         }
 
@@ -118,6 +124,7 @@ public:
 
         if( ( _head - 1 ) == -1 )  // Случай когда мы вышли за пределы 0
         {
+            //std::cout << " (_he=-1)";
             _head = ( _size - 1 );
             if( _head  == _tail )  // Проверка заполнения массива
             {
@@ -125,10 +132,13 @@ public:
                 --_head;
             }
             _arr[_head] = item;
+            //std::cout << std::endl;
             return;
         }
 
         _arr[--_head] = item;
+        //std::cout << " _hNew = " << _head;
+        //std::cout << std::endl;
     }
 
     int popFront()
@@ -143,7 +153,7 @@ public:
             return buffer_item;
         }
 
-        if( _head == _size )  // Можно сократить
+        if( _head == _size )
         {
             if( _tail == 0 )
                 ++_tail;
@@ -154,58 +164,97 @@ public:
 
     void pushBack( int item )
     {
-
+        //printA();
+        //std::cout << "in pushBack it = " << item;
         if(_arr[_head] == -1)  // Для начала поверим есть ли элементы в деке
         {
+            //std::cout << " (_arr[_h]=-1) _head = " << _head << std::endl;
             _arr[_head] = item;
+            if(_head == _tail)
+                _tail = ( _tail + 1) % _size;
             return;
         }
 
         if( ( _tail + 1 ) == _head )  // Проверяем пересечение с головой
+        {
+            //std::cout << " (T+1=H) rBuild";
             reBuild();
+        }
+
 
         if( ( _tail + 1 ) >= _size )  // Проверяем пересеение с максимумом
         {
+            //std::cout << " (tail>size) ";
             if( _head == 0 )
+            {
+                //std::cout << " rBuild";
                 reBuild();
+            }
 
-            if( _tail != _head )
-            {
-                _arr[_tail] = item;
-                _tail = 0;
-            }
-            else
-            {
-                _tail = 0;
-                _arr[_tail++] = item;
-            }
+            _arr[_tail] = item;
+            _tail = 0;
+            //std::cout << " _tailN = " << _tail << std::endl;
+            //printA();
             return;
         }
 
         _arr[_tail] = item;
         ++_tail;
+        //std::cout << " _tailN = " << _tail << std::endl;
     }
 
     int popBack()
     {
+        //printA();
+        //std::cout << "in popBack(" << _size << ") _taild = " << _tail << " _headd = " << _arr[_head];
         if(_arr[_head] == -1)  // Проверим есть ли вообще элементы.
             return -1;
-
         int buffer_item = 0;
 
         if( ( _tail - 1 ) == -1 )
         {
+            //std::cout << " (_tail<0)";
             _tail = ( _size - 1 );
             buffer_item = _arr[_tail];
             _arr[_tail] = -1;
+            //std::cout << " buf_it = " << buffer_item << " _tailN = " << _tail << std::endl; 
+            //printA();
             return buffer_item;
         }
 
-        buffer_item = _arr[--_tail];
-        _arr[_tail] = -1;
         if( _tail == _head )
-            ++_tail;
+        {
+            buffer_item = _arr[_tail];
+            //std::cout << " _arr[t] = " << _arr[_tail];
+            _arr[_tail] = -1;
+            _tail = ( _tail + 1 ) % _size;
+            //std::cout << " buf_it = " << buffer_item;
+            //std::cout << " (_head=_tail) _tailN = " << _tail << std::endl;
+            //printA();
+            return buffer_item;
+        }
 
+        if( _arr[_tail] == -1 )  // Сократить когда все заработет
+        {
+            buffer_item = _arr[--_tail];
+            _arr[_tail] = -1;
+        }
+        else
+        {
+            buffer_item = _arr[_tail];
+            _arr[_tail] = -1;
+            --_tail;
+        }
+        //buffer_item = _arr[( ( _arr[_tail] == -1 ) ? --_tail : _tail )];  //_arr[--_tail];
+        //std::cout << " buf_it = " << buffer_item;
+        //_arr[_tail] = -1;
+
+        if( _tail == _head )
+        {
+            ++_tail;
+            //std::cout << " (_tail=_head)";
+        }
+        //std::cout << " _tailN = " << _tail << std::endl;
         return buffer_item;
     }
 
@@ -222,11 +271,11 @@ public:
     }
 };
 
-std::string dequeOperations( int ( *cmd )[2], const int& size )
+std::string dequeOperations( int ( *cmd )[2], const size_t& size )
 {
     int buffer = 0;
     MyDeque md;
-    for( int i = 0; i < size; ++i )
+    for( size_t i = 0; i < size; ++i )
     {
         switch(cmd[i][0])
         {
@@ -263,6 +312,26 @@ std::string dequeOperations( int ( *cmd )[2], const int& size )
 
 //// Тест
 #ifdef MAKETEST
+class FileNotOpen : public std::exception
+{
+public:
+    explicit FileNotOpen(const std::string &msg) : m_msg(msg) {}
+    const char *what() const noexcept override { return m_msg.c_str(); }
+private:
+    std::string m_msg;
+};
+
+void testFromFile( const std::string& ft, const size_t& size, const std::string& result )
+{
+    int df[size][2];
+    std::ifstream in(ft);
+    if(!in)
+        throw FileNotOpen(ft.c_str());
+    for( size_t i = 0; i < size; ++i )
+        in >> df[i][0] >> df[i][1];
+    assert( ( dequeOperations( df, size ) == result ) );
+}
+
 void test1()
 {
     const int tst_size = 3;
@@ -450,121 +519,11 @@ void test15()
                            };
     assert( ( dequeOperations( tst, tst_size ) == "YES" ) );
 }
-
-void test16()
-{
-    const int tst_size = 100;
-    int tst[tst_size][2] = {
-        {1, 609},
-        {1, 975},
-        {1, 28},
-        {1, 895},
-        {4, 609},
-        {3, 165},
-        {1, 721},
-        {4, 165},
-        {1, 451},
-        {4, 975},
-        {2, 451},
-        {1, 745},
-        {2, 745},
-        {2, 721},
-        {2, 895},
-        {4, 28},
-        {3, 181},
-        {3, 262},
-        {4, 262},
-        {2, 181},
-        {3, 440},
-        {2, 440},
-        {1, 723},
-        {4, 723},
-        {3, 725},
-        {4, 725},
-        {3, 760},
-        {3, 604},
-        {4, 604},
-        {1, 757},
-        {3, 835},
-        {2, 757},
-        {2, 760},
-        {2, 835},
-        {1, 756},
-        {3, 854},
-        {4, 854},
-        {3, 675},
-        {3, 343},
-        {2, 756},
-        {2, 675},
-        {3, 67},
-        {1, 177},
-        {1, 328},
-        {4, 67},
-        {1, 836},
-        {1, 993},
-        {3, 462},
-        {1, 356},
-        {2, 356},
-        {3, 888},
-        {1, 659},
-        {4, 888},
-        {2, 659},
-        {4, 462},
-        {2, 993},
-        {3, 317},
-        {3, 168},
-        {4, 168},
-        {4, 317},
-        {1, 246},
-        {3, 915},
-        {1, 46},
-        {4, 915},
-        {1, 377},
-        {1, 787},
-        {2, 787},
-        {2, 377},
-        {3, 416},
-        {2, 46},
-        {2, 246},
-        {2, 836},
-        {4, 416},
-        {2, 328},
-        {1, 976},
-        {3, 577},
-        {2, 976},
-        {2, 177},
-        {2, 343},
-        {2, 577},
-        {3, 469},
-        {2, 469},
-        {3, 57},
-        {4, 57},
-        {1, 898},
-        {3, 488},
-        {4, 488},
-        {4, 898},
-        {1, 167},
-        {3, 225},
-        {3, 176},
-        {1, 457},
-        {4, 176},
-        {3, 473},
-        {4, 473},
-        {1, 306},
-        {1, 131},
-        {2, 131},
-        {4, 225},
-        {4, 167},
-    };
-    assert( ( dequeOperations( tst, tst_size ) == "YES" ) );
-
-}
 #endif
 
 int main()
 {
 #ifdef MAKETEST
-#if 1
     test1();
     test2();
     test3();
@@ -580,23 +539,8 @@ int main()
     test13();
     test14();
     test15();
-#endif
-    test16();
-/*
-    MyDeque md;
-    md.pushBack(119);
-    md.printA();
-    std::cout << "pop Back " << md.popBack() << std::endl;
-    md.printA();
-    md.pushFront(24);
-    md.printA();
-    md.pushFront(122);
-    md.printA();
-    std::cout << "pop Back " << md.popBack() << " == 24" << std::endl;
-    md.pushFront(87);
-    md.printA();
-    std::cout << "pop Back " << md.popBack() << " == 122" << std::endl;
-*/
+    testFromFile( "input18.txt", 100, "YES" );
+    testFromFile( "input24.txt", 10000, "YES" );
 #else
     int N = 0;
     std::cin >> N;
