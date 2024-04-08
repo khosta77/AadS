@@ -173,6 +173,8 @@ void testFromFile( const std::string& ft, const std::string& fr )
             throw Fakap( "Test № " + std::to_string(I) + " wait: " + std::to_string(results[i])
                          + " out: " + std::to_string(buffer) );
     }
+    delete[] df;
+    delete[] results;
     ++I;
 }
 #endif
@@ -182,7 +184,13 @@ int main()
 #ifdef MAKETEST
     testFromFile( "in01.txt", "out01.txt" );
 #else
-
+    size_t size = 0;
+    std::cin >> tN;
+    int* df = new int[size];
+    for( size_t i = 0; i < size; ++i )
+        std::cin >> df[i];
+    make( df, size );
+    delete[] df;
 #endif
     return 0;
 }
