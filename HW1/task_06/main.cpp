@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <random>
+#include <cstdlib>
 
 /*
 // Задача 6.4
@@ -29,7 +30,8 @@
   Если он не больше опорного, то меняем a[i] и a[j] местами, сдвигаем i и сдвигаем j.
 * В конце работы алгоритма меняем опорный и элемент, на который указывает итератор i.
 
-6_4. Реализуйте стратегию выбора опорного элемента “случайный элемент”. Функцию Partition реализуйте методом прохода двумя итераторами от конца массива к началу.
+6_4. Реализуйте стратегию выбора опорного элемента “случайный элемент”.
+     Функцию Partition реализуйте методом прохода двумя итераторами от конца массива к началу.
 */
 
 // На локальной машине, чтобы поверить
@@ -48,6 +50,8 @@ bool defaultLess( const T &l, const T &r )
     return l < r;
 }
 
+std::mt19937 rnd(std::chrono::steady_clock::now().time_since_epoch().count());
+
 template <typename T = int>
 class Statistic
 {
@@ -59,47 +63,41 @@ private:
     size_t _from;
     size_t _to;
 
-    std::random_device _engine;
-
-    inline void mySwap( T& l, T& r )
+    size_t genPivot()
     {
-        T tmp = l;
-        l = r;
-        r = tmp;
-    }
-
-    inline size_t genPivot()
-    {
-        return std::uniform_real_distribution<size_t>( _from, _to )( _engine );
+        if( _to == _from )
+            return _to;
+        std::uniform_int_distribution<int> distrib(_to, ( _from - 1 ));
+        return distrib(rnd);
     }
 
     size_t partition()
     {
-        const size_t pivotIndex = genPivot();
-        const T pivot = _arr[pivotIndex];
-        mySwap( _arr[pivotIndex], _arr[_to] );
+        size_t pivotIndex = genPivot();
         size_t i = _from, j = _from;
-        while( _cmp( _arr[_to], _arr[i] ) )
+        while( j > _to )
         {
-            while( ( i < _to ) && ( _cmp( _arr[i], pivot ) || _arr[i] == pivot ) )
-                ++i;
-            while( ( ( j < _to ) && _cmp( pivot, _arr[j] ) ) || ( j < i ) )
-                ++j;
-
-            ( ( j <  _to ) && _cmp( _arr[j], _arr[i] ) ) ? mySwap( _arr[i++], _arr[j++] ) :
-                mySwap( _arr[i], _arr[_to] );
+            if( _cmp( _arr[j], _arr[pivotIndex] ) )
+                --j;
+            else
+            {
+                std::swap( i, j );
+                --i;
+                --j;
+            }
         }
+        std::swap( _to, i );
         return i;
     }
 
-    T calc( const size_t& k = 50 )
+    T calc( const size_t& k )
     {
-        _from = 0;
-        _to = ( _size - 1 );
+        _from = ( _size - 1 );
+        _to = ( 0 );
         size_t pivotIndex = partition();
         while( pivotIndex != k )
         {
-            ( k < pivotIndex ) ? _to = ( --pivotIndex ) : _from = ( ++pivotIndex );
+            ( k < pivotIndex ) ? _from = ( --pivotIndex ) : _to = ( ++pivotIndex );
             pivotIndex = partition();
         }
         return _arr[pivotIndex];
@@ -185,10 +183,9 @@ int main()
     testFromFile( "in01.txt", "out01.txt" );
     testFromFile( "in02.txt", "out02.txt" );
     testFromFile( "in03.txt", "out03.txt" );
-
 #else
     size_t size = 0;
-    std::cin >> tN;
+    std::cin >> size;
     int* df = new int[size];
     for( size_t i = 0; i < size; ++i )
         std::cin >> df[i];
