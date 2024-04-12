@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <random>
-#include <cstdlib>
+#include <chrono>
 
 /*
 // Задача 6.4
@@ -47,7 +47,7 @@ constexpr size_t percentages[percentages_size] = { 10, 50, 90 };
 template <typename T = int>  // Взял с семинара
 bool defaultLess( const T &l, const T &r )
 {
-    return l < r;
+    return l > r;
 }
 
 std::mt19937 rnd(std::chrono::steady_clock::now().time_since_epoch().count());
@@ -65,28 +65,24 @@ private:
 
     size_t genPivot()
     {
-        if( _to == _from )
-            return _to;
-        std::uniform_int_distribution<int> distrib(_to, ( _from - 1 ));
-        return distrib(rnd);
+        std::uniform_int_distribution<int> distrib(_to, _from);
+		return distrib(rnd);
     }
 
     size_t partition()
     {
-        size_t pivotIndex = genPivot();
+		std::swap( _arr[genPivot()], _arr[_to] );
         size_t i = _from, j = _from;
         while( j > _to )
         {
-            if( _cmp( _arr[j], _arr[pivotIndex] ) )
-                --j;
-            else
-            {
-                std::swap( i, j );
-                --i;
-                --j;
-            }
+            if( _cmp( _arr[j], _arr[_to] ) )
+			{
+				std::swap( _arr[i], _arr[j] );
+				--i;
+			}
+            --j;
         }
-        std::swap( _to, i );
+        std::swap( _arr[i], _arr[_to] );
         return i;
     }
 
