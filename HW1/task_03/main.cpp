@@ -30,242 +30,109 @@ a = 4 - pop back
 #include <cassert>
 #endif
 
-/*
-h - head
-t - tail
-| 0| 1| 2| 3| 4| 5| 6| 7| 9|
-+--+--+--+--+--+--+--+--+--+
-|-1|-1|-1|-1|10|02|32|-1|-1|
-+--+--+--+--+--+--+--+--+--+
-|  |  |  |  |h |  |  | t|  |
-*/
+template <typename T = int>
 class MyDeque
 {
 private:
-    int _size;
-    int *_arr;
-    int _head;
-    int _tail;
-
-    int* fillNewArray( const int& size, const int& item = -1 )
-    {
-        int* buffer = new int[size];
-        for( int i = 0; i < size; ++i )
-            buffer[i] = item;
-        return buffer;
-    }
+	size_t _size;
+    size_t _image_size;
+	size_t _head;
+	size_t _tail;
+	T* _arr;
 
     void reBuild()
     {
-        const int _size_buffer = _size;  // Создаем новый массив
-        _size *= 2;
-        int* buffer = fillNewArray( _size );
-    
-        int _new_head = ( _size / 2 ), _new_tail = _new_head;  // Задаем новые границы
-        int i = 0, j = 0;
-
-        if( _arr[( _size_buffer - 1 )] == -1 )
+        _size *=  2;
+	    T* buffer = new T[_size];
+        for( size_t k = 0; k < _size; buffer[k++] = 0 );
+	    size_t i = _head, j = 0;
+	    while( i != _tail )
         {
-            for( i = ( _head ); i < _tail; ++i, ++j)
-                buffer[( _new_tail + j )] = _arr[i];
-            _new_tail = ( _new_tail + j + 1 );
-        }
-        else
-        {
-            for( i = ( _head ); i < _size_buffer; ++i, ++j)
-                buffer[( _new_head + j )] = _arr[i];
-            for( i = 0; i < _tail; ++i, ++j )
-                buffer[( _new_head + j )] = _arr[i];
-            _new_tail = ( ( _new_head + j ) == _size ) ? 0 : ( _new_head + j );
-        }
-        if( _head == _tail )
-        {
-            for(i = 0, j = ( _size_buffer - 1 ); i < j; ++i)
-                buffer[( _new_head + i )] = _arr[i];
-            _new_tail = ( _size - 1);
-        }
-
-        _head = _new_head;
-        _tail = _new_tail;
-        delete[] _arr;
+		    buffer[j++] = _arr[i++];
+            i %= _image_size;
+	    }
+	    buffer[j] = _arr[i];
+        _head = 0;
+	    _tail = ( _image_size - 1 );
+	    delete[] _arr;
         _arr = buffer;
     }
 
-public:
-    explicit MyDeque(const int& resize = 8) : _size(resize)
-    {
-        _arr = fillNewArray( _size );
-        _head = ( _size / 2 );
-        _tail = ( _head + 1 );
+    inline bool pushWhenImageSize0()
+    {  //                               1 нужна, чтобы вернуло true
+        return ( ( _image_size == 1 ) ? bool(1 + ( _tail = _head = 0 ) ) : false );
     }
+
+    inline bool popWhenHeadEqualTail()
+    {
+        return ( ( _head == _tail ) ? ( _head = _tail = -1 ) : true );
+    }
+
+
+public:
+	MyDeque() : _size(1), _image_size(0), _head(-1), _tail(-1)
+	{
+		_arr = new T[_size];
+	}
 
     ~MyDeque()
     {
         delete[] _arr;
     }
 
-    void pushFront( int item )
+	void pushFront( T item )
     {
-        //printA();
-        //std::cout << "in pushFront it = " << item << " _t = " << _tail << " _hD = " << _head << " ar[_h] = " << _arr[_head];
-        if ( _arr[_head] == -1 )  // Случай когда кладем первый элемент
-        {
-            _arr[_head] = item;
-            if(_head == _tail)
-                _tail = ( _tail + 1) % _size;
-            //std::cout << std::endl;
-            return;
-        }
-
-        if( ( _head - 1 ) == _tail )  // Случай когда хвост и голова пересеклись
-        {
+    	if( _image_size == _size )
             reBuild();
-        }
+	    ++_image_size;
 
-        if( ( _head - 1 ) == -1 )  // Случай когда мы вышли за пределы 0
-        {
-            //std::cout << " (_he=-1)";
-            _head = ( _size - 1 );
-            if( _head  == _tail )  // Проверка заполнения массива
-            {
-                reBuild();
-                --_head;
-            }
-            _arr[_head] = item;
-            //std::cout << std::endl;
-            return;
-        }
+	    if(!pushWhenImageSize0())
+         	_head = ( ( --_head + _size ) % _size );
 
-        _arr[--_head] = item;
-        //std::cout << " _hNew = " << _head;
-        //std::cout << std::endl;
+	    _arr[_head] = item;
+    }
+	
+    T popFront()
+    {
+	    if( _image_size == 0 )
+            return -1;  // Так, тут если использовать шаблоны, будет ошибка. Надо возращать throw
+	    T buffer = _arr[_head];
+	    --_image_size;
+
+	    if(popWhenHeadEqualTail())
+		 	_head = ( ( ++_head ) % _size );
+
+	    return buffer;
     }
 
-    int popFront()
+    void pushBack( T item )
     {
-        if( _arr[_head] == -1 )
-            return -1;
-        int buffer_item = _arr[_head];
-        _arr[_head++] = -1;
-        if( _head == _tail )
-        {
-            _tail = ( ( _tail + 1 ) == _size ) ? 0 : ( _tail + 1 );
-            return buffer_item;
-        }
-
-        if( _head == _size )
-        {
-            if( _tail == 0 )
-                ++_tail;
-            _head = 0;
-        }
-        return buffer_item;
-    }
-
-    void pushBack( int item )
-    {
-        //printA();
-        //std::cout << "in pushBack it = " << item;
-        if(_arr[_head] == -1)  // Для начала поверим есть ли элементы в деке
-        {
-            //std::cout << " (_arr[_h]=-1) _head = " << _head << std::endl;
-            _arr[_head] = item;
-            if(_head == _tail)
-                _tail = ( _tail + 1) % _size;
-            return;
-        }
-
-        if( ( _tail + 1 ) == _head )  // Проверяем пересечение с головой
-        {
-            //std::cout << " (T+1=H) rBuild";
+        if( _image_size == _size )
             reBuild();
-        }
+	    ++_image_size;
 
+	    if(!pushWhenImageSize0())
+         	_tail = ( ( ++_tail ) % _size );
 
-        if( ( _tail + 1 ) >= _size )  // Проверяем пересеение с максимумом
-        {
-            //std::cout << " (tail>size) ";
-            if( _head == 0 )
-            {
-                //std::cout << " rBuild";
-                reBuild();
-            }
-
-            _arr[_tail] = item;
-            _tail = 0;
-            //std::cout << " _tailN = " << _tail << std::endl;
-            //printA();
-            return;
-        }
-
-        _arr[_tail] = item;
-        ++_tail;
-        //std::cout << " _tailN = " << _tail << std::endl;
+	    _arr[_tail] = item;
     }
 
-    int popBack()
+    T popBack()
     {
-        //printA();
-        //std::cout << "in popBack(" << _size << ") _taild = " << _tail << " _headd = " << _arr[_head];
-        if(_arr[_head] == -1)  // Проверим есть ли вообще элементы.
+	    if( _image_size == 0 )
             return -1;
-        int buffer_item = 0;
+	    T buffer = _arr[_tail];
+        --_image_size;
 
-        if( ( _tail - 1 ) == -1 )
-        {
-            //std::cout << " (_tail<0)";
-            _tail = ( _size - 1 );
-            buffer_item = _arr[_tail];
-            _arr[_tail] = -1;
-            //std::cout << " buf_it = " << buffer_item << " _tailN = " << _tail << std::endl; 
-            //printA();
-            return buffer_item;
-        }
+	    if(popWhenHeadEqualTail())
+		 	_tail = ( ( --_tail + _size ) % _size );
 
-        if( _tail == _head )
-        {
-            buffer_item = _arr[_tail];
-            //std::cout << " _arr[t] = " << _arr[_tail];
-            _arr[_tail] = -1;
-            _tail = ( _tail + 1 ) % _size;
-            //std::cout << " buf_it = " << buffer_item;
-            //std::cout << " (_head=_tail) _tailN = " << _tail << std::endl;
-            //printA();
-            return buffer_item;
-        }
-
-        if( _arr[_tail] == -1 )  // Сократить когда все заработет
-        {
-            buffer_item = _arr[--_tail];
-            _arr[_tail] = -1;
-        }
-        else
-        {
-            buffer_item = _arr[_tail];
-            _arr[_tail] = -1;
-            --_tail;
-        }
-        //buffer_item = _arr[( ( _arr[_tail] == -1 ) ? --_tail : _tail )];  //_arr[--_tail];
-        //std::cout << " buf_it = " << buffer_item;
-        //_arr[_tail] = -1;
-
-        if( _tail == _head )
-        {
-            ++_tail;
-            //std::cout << " (_tail=_head)";
-        }
-        //std::cout << " _tailN = " << _tail << std::endl;
-        return buffer_item;
-    }
-
-    inline int getSize() const
-    {
-        return _size;
+        return buffer;
     }
 
     void printA()
     {
-        for( int i = 0; i < _size; ++i)
+        for( size_t i = 0; i < _size; ++i)
             std::cout << _arr[i] << " ";
         std::cout << std::endl;
     }
