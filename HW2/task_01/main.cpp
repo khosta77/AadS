@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <fstream>
 #include <cstdint>
 #include <vector>
 #include <map>
@@ -124,6 +125,8 @@ class HashTable
      * */
     bool universalHashTableMethod( const T& item, const bool& isAdded, const bool& isDeleted )
     {
+        //std::cout << item << " " << isAdded << " " << isDeleted << std::endl;
+
         if ( isAdded && ( ( float )_size >= ( 0.75 * ( float )_table.size() ) ) )
             reBuild();
 
@@ -134,24 +137,31 @@ class HashTable
 
         while( ( _table[hash]._state != CELL_EMPTY ) && ( cnt < _table.size() ) )
         {
+            //std::cout << hash << std::endl;
             if( ( _table[hash]._item == item ) && ( _table[hash]._state != CELL_DELETE) )
             {
                 if( isDeleted )
                     _table[hash]._state = CELL_DELETE;
+                //std::cout << item << " " << isAdded << " " << isDeleted << std::endl;
                 return ( ( !isAdded ) ? true : false);
             }
 
             if( isAdded && ( ( _table[hash]._state == CELL_DELETE ) && ( deletedItem.first ) ) )
             {
+                //std::cout << item << " in Added deleted item" << std::endl;
                 deletedItem = std::pair<bool, size_t>( false, hash );
                 break;  // Если бы попали на удаленную ячейку, сразу можно выйти
             }
 
-            hash = ( ( hash + ++cnt ) % _table.size() );
+            hash = ( ( ++hash ) % _table.size() );
+            ++cnt;
         }
 
         if( !isAdded )  // Если мы не добавлеям новый элемент, то возвращаем false
+        {
+            //std::cout << item << " not Added" << std::endl;
             return false;
+        }
 
         hash = ( ( deletedItem.first ) ? hash : deletedItem.second );
         _table[hash] = Cell( std::move( item ), hashValue );
@@ -186,11 +196,11 @@ std::string check( HashTable<T>& ht, const char& cmd, const std::string& value )
     switch( cmd )
     {
         case '+':
-            return ( ( ht.add( value ) ? "OK\n" : "FAIL\n" ) );
+            return ( ( ht.add( value ) ? "OK" : "FAIL" ) );
         case '-':
-            return ( ( ht.remove( value ) ? "OK\n" : "FAIL\n" ) );
+            return ( ( ht.remove( value ) ? "OK" : "FAIL" ) );
         case '?':
-            return ( ( ht.find( value ) ? "OK\n" : "FAIL\n" ) );
+            return ( ( ht.find( value ) ? "OK" : "FAIL" ) );
         default:
             std::cout << "Неизвестная команда: " << cmd << " uint8_t = " << ( ( uint8_t )cmd ) << std::endl; 
             throw;
@@ -200,16 +210,74 @@ std::string check( HashTable<T>& ht, const char& cmd, const std::string& value )
 
 //// Тест
 #ifdef MAKETEST
+class FileNotOpen : public std::exception
+{
+public:
+    explicit FileNotOpen(const std::string &msg) : m_msg(msg) {}
+    const char *what() const noexcept override { return m_msg.c_str(); }
+private:
+    std::string m_msg;
+};
+
+class Fakap : public std::exception
+{
+public:
+    explicit Fakap(const std::string &msg) : m_msg(msg) {}
+    const char *what() const noexcept override { return m_msg.c_str(); }
+private:
+    std::string m_msg;
+};
+
+size_t I = 1;  // Ужасно, глобальные переменные это плохо, но тут чтобы не парится и строки не тратить
+
+void testFromFile( const size_t& N, const size_t& id_tests )
+{
+    std::string df[N][3];
+    const std::string FILE_PATH_INPUT = ( "input/in" + std::to_string(id_tests) + ".txt" );
+    const std::string FILE_PATH_OUTPUT = ( "output/out" + std::to_string(id_tests) + ".txt" );
+    std::ifstream itst( FILE_PATH_INPUT ), ires( FILE_PATH_OUTPUT );
+    if( !itst )
+        throw FileNotOpen( FILE_PATH_INPUT );
+    if( !ires )
+        throw FileNotOpen( FILE_PATH_OUTPUT );
+
+    for( size_t i = 0; i < N; ++i )
+    {
+        itst >> df[i][0] >> df[i][1];
+        ires >> df[i][2];
+    }
+
+    for( size_t i = 0; i < N; ++i )
+    {
+        std::cout << (i + 1) << " " << df[i][0] << " " << df[i][1] << " " << df[i][2] << std::endl;
+    }
+    HashTable hashTable;
+    for( size_t i = 0; i < N; ++i )
+    {
+        std::string control = check( hashTable, df[i][0][0], df[i][1] );
+        if( df[i][2] != control )
+        {
+            hashTable.print();
+            std::cout << df[i][0] << " " << df[i][1] << std::endl;
+            throw Fakap( "Test № " + std::to_string(I) + " i № " + std::to_string(i) + "\n\r--->" +
+                         " wait: " + df[i][2] + " out: " + control );
+        }
+        control.clear();
+    }
+
+    I++;
+}
+
 void test1()
 {
     std::string df[7][3] = {
-        { "+", "hello", "OK\n" },
-        { "+", "bye", "OK\n" },
-        { "?", "bye", "OK\n" },
-        { "+", "bye", "FAIL\n" },
-        { "-", "bye", "OK\n" },
-        { "?", "bye", "FAIL\n" },
-        { "?", "hello", "OK\n" }
+        { "+", "hello", "OK" },
+        { "+", "bye", "OK" },
+        { "?", "bye", "OK" },
+        { "+", "bye", "FAIL" },
+        { "-", "bye", "OK" },
+        { "?", "bye", "FAIL" },
+        { "?", "hello", "OK" }
     };
     HashTable hashTable;
     for( size_t i = 0; i < 7; ++i )
@@ -218,28 +286,29 @@ void test1()
             assert(0);
     }
     //hashTable.print();
+    I++;
 }
 
 void test2()
 {
     std::string df[17][3] = {
-        { "+", "1", "OK\n" },
-        { "?", "1", "OK\n" },
-        { "+", "2", "OK\n" },
-        { "+", "3", "OK\n" },
-        { "+", "4", "OK\n" },
-        { "+", "4", "FAIL\n" },
-        { "?", "5", "FAIL\n" },
-        { "-", "1", "OK\n" },
-        { "?", "1", "FAIL\n" },
-        { "+", "1", "OK\n" },
-        { "?", "1", "OK\n" },
-        { "-", "2", "OK\n" },
-        { "-", "1", "OK\n" },
-        { "?", "1", "FAIL\n" },
-        { "?", "9", "FAIL\n" },
-        { "?", "2", "FAIL\n" },
-        { "+", "2", "OK\n" }
+        { "+", "1", "OK" },
+        { "?", "1", "OK" },
+        { "+", "2", "OK" },
+        { "+", "3", "OK" },
+        { "+", "4", "OK" },
+        { "+", "4", "FAIL" },
+        { "?", "5", "FAIL" },
+        { "-", "1", "OK" },
+        { "?", "1", "FAIL" },
+        { "+", "1", "OK" },
+        { "?", "1", "OK" },
+        { "-", "2", "OK" },
+        { "-", "1", "OK" },
+        { "?", "1", "FAIL" },
+        { "?", "9", "FAIL" },
+        { "?", "2", "FAIL" },
+        { "+", "2", "OK" }
     };
     HashTable hashTable;
     for( size_t i = 0; i < 17; ++i )
@@ -251,36 +320,37 @@ void test2()
             assert(0);
         }
     }
+    I++;
 }
 
 void test3()
 {
     const size_t SIZE = 24;
     std::string df[SIZE][3] = {
-        { "+", "1", "OK\n" },
-        { "+", "2", "OK\n" },
-        { "+", "3", "OK\n" },
-        { "+", "4", "OK\n" },
-        { "+", "5", "OK\n" },
-        { "+", "6", "OK\n" },
-        { "?", "1", "OK\n" },
-        { "?", "2", "OK\n" },
-        { "?", "3", "OK\n" },
-        { "?", "4", "OK\n" },
-        { "?", "5", "OK\n" },
-        { "?", "6", "OK\n" },
-        { "-", "1", "OK\n" },
-        { "-", "2", "OK\n" },
-        { "-", "3", "OK\n" },
-        { "-", "4", "OK\n" },
-        { "-", "5", "OK\n" },
-        { "-", "6", "OK\n" },
-        { "?", "1", "FAIL\n" },
-        { "?", "2", "FAIL\n" },
-        { "?", "3", "FAIL\n" },
-        { "?", "4", "FAIL\n" },
-        { "?", "5", "FAIL\n" },
-        { "?", "6", "FAIL\n" }
+        { "+", "1", "OK" },
+        { "+", "2", "OK" },
+        { "+", "3", "OK" },
+        { "+", "4", "OK" },
+        { "+", "5", "OK" },
+        { "+", "6", "OK" },
+        { "?", "1", "OK" },
+        { "?", "2", "OK" },
+        { "?", "3", "OK" },
+        { "?", "4", "OK" },
+        { "?", "5", "OK" },
+        { "?", "6", "OK" },
+        { "-", "1", "OK" },
+        { "-", "2", "OK" },
+        { "-", "3", "OK" },
+        { "-", "4", "OK" },
+        { "-", "5", "OK" },
+        { "-", "6", "OK" },
+        { "?", "1", "FAIL" },
+        { "?", "2", "FAIL" },
+        { "?", "3", "FAIL" },
+        { "?", "4", "FAIL" },
+        { "?", "5", "FAIL" },
+        { "?", "6", "FAIL" }
     };
     HashTable hashTable;
     for( size_t i = 0; i < SIZE; ++i )
@@ -292,6 +362,7 @@ void test3()
             assert(0);
         }
     }
+    I++;
     //hashTable.print();
 }
 
@@ -299,26 +370,26 @@ void test4()
 {
     const size_t SIZE = 20;
     std::string df[SIZE][3] = {
-        { "+", "1", "OK\n" },
-        { "+", "2", "OK\n" },
-        { "+", "3", "OK\n" },
-        { "+", "4", "OK\n" },
-        { "+", "5", "OK\n" },
-        { "+", "6", "OK\n" },
-        { "?", "1", "OK\n" },
-        { "?", "2", "OK\n" },
-        { "?", "3", "OK\n" },
-        { "?", "4", "OK\n" },
-        { "?", "5", "OK\n" },
-        { "?", "6", "OK\n" },
-        { "+", "7", "OK\n" },
-        { "?", "7", "OK\n" },
-        { "?", "1", "OK\n" },
-        { "?", "2", "OK\n" },
-        { "?", "3", "OK\n" },
-        { "?", "4", "OK\n" },
-        { "?", "5", "OK\n" },
-        { "?", "6", "OK\n" }
+        { "+", "1", "OK" },
+        { "+", "2", "OK" },
+        { "+", "3", "OK" },
+        { "+", "4", "OK" },
+        { "+", "5", "OK" },
+        { "+", "6", "OK" },
+        { "?", "1", "OK" },
+        { "?", "2", "OK" },
+        { "?", "3", "OK" },
+        { "?", "4", "OK" },
+        { "?", "5", "OK" },
+        { "?", "6", "OK" },
+        { "+", "7", "OK" },
+        { "?", "7", "OK" },
+        { "?", "1", "OK" },
+        { "?", "2", "OK" },
+        { "?", "3", "OK" },
+        { "?", "4", "OK" },
+        { "?", "5", "OK" },
+        { "?", "6", "OK" }
     };
     HashTable hashTable;
     for( size_t i = 0; i < SIZE; ++i )
@@ -330,29 +401,30 @@ void test4()
             assert(0);
         }
     }
+    I++;
     //hashTable.print();
 }
 
 void test5()
 {
     std::string df[17][3] = {
-        { "+", "1", "OK\n" },
-        { "?", "1", "OK\n" },
-        { "+", "2", "OK\n" },
-        { "+", "3", "OK\n" },
-        { "+", "4", "OK\n" },
-        { "+", "5", "OK\n" },
-        { "+", "6", "OK\n" },
-        { "+", "7", "OK\n" },
-        { "+", "8", "OK\n" },
-        { "+", "9", "OK\n" },
-        { "+", "10", "OK\n" },
-        { "?", "1", "OK\n" },
-        { "-", "1", "OK\n" },
-        { "?", "1", "FAIL\n" },
-        { "?", "9", "OK\n" },
-        { "-", "9", "OK\n" },
-        { "?", "9", "FAIL\n" }
+        { "+", "1", "OK" },
+        { "?", "1", "OK" },
+        { "+", "2", "OK" },
+        { "+", "3", "OK" },
+        { "+", "4", "OK" },
+        { "+", "5", "OK" },
+        { "+", "6", "OK" },
+        { "+", "7", "OK" },
+        { "+", "8", "OK" },
+        { "+", "9", "OK" },
+        { "+", "10", "OK" },
+        { "?", "1", "OK" },
+        { "-", "1", "OK" },
+        { "?", "1", "FAIL" },
+        { "?", "9", "OK" },
+        { "-", "9", "OK" },
+        { "?", "9", "FAIL" }
     };
     HashTable hashTable;
     for( size_t i = 0; i < 17; ++i )
@@ -364,6 +436,7 @@ void test5()
             assert(0);
         }
     }
+    I++;
 }
 
 #endif
@@ -376,12 +449,13 @@ int main()
     test3();
     test4();
     test5();
+    testFromFile( 50, 6 );
 #else
     std::string cmd, item;
     HashTable hashTable;
     while( std::cin >> cmd >> item )
     {
-        std::cout << check( hashTable, cmd[0], item );
+        std::cout << check( hashTable, cmd[0], item ) << std::endl;
         cmd.clear(); item.clear();
     }
 #endif
