@@ -52,27 +52,6 @@ int exponentSearchMax( const double* arr, const int& size )
     return BinarySearchMax( arr, ( i / 2 ), i );  // Бинарный поиск в массиве
 }
 
-int bin_search(int left,int right, int *a, int flag)
-{
-    int mid = 0;
-    while(left<right)
-    {
-        if(right-left == 1)
-          return a[right-1]>a[left-1] ? (right-1) : (left-1);
-        mid = (left+right)/2;
-        if(a[mid-1]>a[mid-2] && a[mid-1] > a[mid])
-            return mid-1;
-        else
-            if(a[mid-2] > a[mid])
-                right = mid-1;
-            else
-                left = mid;
-    }
-    if(left == right)
-        return right-1;
-    return -1;
-}
-
 #ifdef MAKETEST  // Сделал тест, чтобы локально проверить
 template<typename T>
 T myMaxI( const T* a, const int& s ) // stupid method
