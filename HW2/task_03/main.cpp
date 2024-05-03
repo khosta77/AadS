@@ -1,10 +1,11 @@
 #include <iostream>
 #include <deque>
+#include <vector>
 
 /*
 // Задача 3
 Постройте B-дерево минимального порядка t и выведите его по слоям. В качестве ключа используются числа, 
-лежащие в диапазоне [0..232-1]
+лежащие в диапазоне [0..2^32-1]
 //// Требования:
 * B-дерево должно быть реализовано в виде шаблонного класса.
 * Решение должно поддерживать передачу функции сравнения снаружи.
@@ -18,13 +19,12 @@
 */
 
 // На локальной машине, чтобы поверить
-//#define MAKETEST
+#define MAKETEST
 #ifdef MAKETEST
 #include <cassert>
 #endif
 
 //// Код
-
 template <typename T = size_t>  // Взял с семинара
 bool defaultLess( const T &l, const T &r )
 {
@@ -43,14 +43,15 @@ class BTree
     public:
         size_t _size;
 
-        T *_keys;
+        std::vector<T> _keys;
         Node **_children;
 
         Node() = delete;
         Node( const size_t& order, const bool& isLeaf, bool ( *cmp )( const T& l, const T& r ) ) : 
             _order(order), _isLeaf(isLeaf), _cmp(cmp), _size(0)
         {
-            _keys = new T[( ( 2 * _order ) - 1 )];
+            _keys.resize( ( ( 2 * _order ) - 1 ) );
+            //_keys = new T[( ( 2 * _order ) - 1 )];
             _children = new Node*[( 2 * _order )];
         }
     
@@ -64,27 +65,47 @@ class BTree
 
         void pushToNode( const T& key )
         {
-            size_t i = ( _size - 1 );
-
             if( _isLeaf )
             {
-                for( ; ( ( i >= 0 ) && _cmp( key, _keys[i] ) ); --i )
-                    _keys[( i + 1 )] = _keys[i];
-                _keys[( i + 1 )] = key;
-                _size = ( _size + 1 );
+                T buffer = key;
+                for( size_t i = 0; ( ( i < _size ) ); ++i )
+                    if( _cmp( buffer, _keys.at( i ) ) )
+                        std::swap( buffer, _keys[i] );
+                _keys[_size++] = buffer;
                 return;
             }
 
-            while( ( ( i >= 0 ) && _cmp( key, _keys[i] ) ) )
-                --i;
-
-            if( _children[( i + 1 )]->_size == ( ( 2 * _order ) - 1 ) )
+            
+            size_t i = 0;
+            for( ; ( i < _size ); ++i )
             {
-                reBuild( (i + 1), _children[( i + 1 )] );
-                if( _cmp( _keys[( i + 1 )], key ) )
+                if( _cmp( key, _keys.at(i) ) )
+                {
+                //    std::cout << "i: " << i << " Key: " << _keys[i] << std::endl; 
+                    break;
+                }
+            }
+            
+            //size_t i = ( _size - 1 );
+
+            //while( ( ( i >= 0 ) && _cmp( key, _keys[ i ] ) ) )
+              //  --i;
+
+            //std::cout << std::endl;
+            //for(size_t j = 0; j < _size; ++j)
+             //   std::cout << '(' << j << ", " << _keys[j] << ") ";
+            //std::cout << std::endl;
+            //i %= _size;
+            //std::cout << _size << " i:" << i << " Key: " << _keys[i] << " push:" << key << std::endl;
+            
+
+            if( _children[( i )]->_size == ( ( 2 * _order ) - 1 ) )
+            {
+                reBuild( ( i ), _children[( i )] );
+                if( _cmp( _keys[( i )], key ) )
                     ++i;
             }
-            _children[( i + 1 )]->pushToNode(key);
+            _children[( i )]->pushToNode(key);
         }
 
         void reBuild( const size_t& I, Node *node )
@@ -101,12 +122,19 @@ class BTree
             
             node->_size = ( _order - 1 );
             for( size_t j = _size; j >= ( I + 1 ); --j )
+            {
+                std::cout << j << std::endl;
                 _children[( j + 1 )] = _children[j];
-
+            }
             _children[( I + 1 )] = buffer;
+            //for(size_t i = 0; i < _size; ++i)
+            //    std::cout << _keys[i] << ' ';
+            //std::cout << std::endl;
 
-            for( size_t j = _size; j > I; --j )
+            for( size_t j = _size; j > I; --j )  // Вот тут мог быть выход за границы
                 _keys[( j + 1 )] = _keys[j];
+            _keys[( I + 1 )] = _keys[I];
+
             _keys[I] = node->_keys[( _order - 1 )];
             _size = ( _size + 1 );
         }
@@ -173,15 +201,24 @@ public:
             _root->_size = 1;
             return;
         }
-
+        //std::cout << "--------------------------" << std::endl;
+        //std::cout << "Root->Key[0]: " << _root->_keys[0] << " key: " << key << std::endl; 
         if ( _root->_size != ( ( 2 * _order ) - 1 ) )
-            return ( (void)( _root->pushToNode(key) ) );
+        {
+            //std::cout << "Key: " << key << " added current root" << std::endl;
+            _root->pushToNode(key);
+        //std::cout << _root->_keys[0] << std::endl;
 
+            return; //( (void)( _root->pushToNode(key) ) );
+        }
+        //std::cout << "Key: " << key << " Make new node" << std::endl;
         Node *node = new Node( _order, false, _cmp );
         node->_children[0] = _root;
         node->reBuild( 0, _root );
         node->_children[( ( _cmp( node->_keys[0], key ) ? 1 : 0 ) )]->pushToNode(key);
         _root = node;
+
+        //std::cout << _root->_keys[0] << std::endl;
     }
 };
 
@@ -191,7 +228,7 @@ void test1()
 {
     std::cout << "--------------------------" << std::endl;
     BTree tree(2);
-    for( int i = 0; i < 10; ++i )
+    for( size_t i = 0; i < 10; ++i )
         tree.push(i);
     tree.printLevels();
 }
@@ -200,10 +237,57 @@ void test2()
 {
     std::cout << "--------------------------" << std::endl;
     BTree tree(4);
-    for( int i = 0; i < 10; ++i )
+    for( size_t i = 0; i < 10; ++i )
         tree.push(i);
     tree.printLevels();
 }
+
+void test3()
+{
+    std::cout << "--------------------------" << std::endl;
+    BTree tree(5);
+    for( size_t i = 9; i > 0; --i )
+        tree.push(i);
+    tree.push(0);
+    tree.printLevels();
+}
+
+void test4()
+{
+    std::cout << "--------------------------" << std::endl;
+    BTree tree(2);
+    tree.push(5);
+    tree.push(9);
+    tree.push(3);
+    tree.push(7);
+    tree.push(1);
+    tree.push(2);
+    tree.push(8);
+    tree.push(6);
+    tree.push(0);
+    tree.push(4);
+/*
+                                 ___
+                                |_5_|
+                            ___/     \___
+                           |_2_|     |_8_|
+                         _/    |     |    \_
+                       _/      |     |      \_
+                 ___ _/_    ___|___  |_______ \____
+                |_0_|_1_|  |_3_|_4_| |_6_|_7_| |_9_| 
+*/
+    tree.printLevels();
+}
+
+void test5()
+{
+    std::cout << "--------------------------" << std::endl;
+    BTree tree(2);
+    for( size_t i = 0; i < 7; ++i )
+        tree.push(i);
+    tree.printLevels();
+}
+
 #endif
 
 int main()
@@ -211,6 +295,9 @@ int main()
 #ifdef MAKETEST
     test1();
     test2();
+    test3();
+    test4();
+    test5();
 #else
     size_t order = 0;
     std::cin >> order;
