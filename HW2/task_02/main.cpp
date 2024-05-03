@@ -40,13 +40,7 @@ private:
         Node() : _item(0), _p(nullptr), _l(nullptr), _r(nullptr) {}
         Node( const T& item, Node *parent, Node *left, Node *right ) : _item(item), _p(parent),
                                                                        _l(left), _r(right) {}
-        ~Node()
-        {
-            if( this->_l != nullptr )
-                delete this->_l;
-            if( this->_r != nullptr )
-                delete this->_r;
-        }
+        ~Node() { }
     };
 
     Node* _root;
@@ -56,8 +50,22 @@ public:
     BinaryTree( bool ( *cmp )( const T& l, const T& r ) = defaultLess ) : _root(nullptr), _cmp(cmp) {}
     ~BinaryTree()
     {
-        if( _root != nullptr )
-            delete _root;
+        if( _root == nullptr )
+            return;
+
+        std::stack<Node*> buffer;
+        buffer.push(_root); 
+        while( buffer.empty() != 1 )
+        {
+            Node* it = buffer.top();
+            buffer.pop();
+ 
+            if ( it->_r )
+                buffer.push( it->_r );
+            if ( it->_l )
+                buffer.push( it->_l );
+            delete it;
+        }
     }
 
     void push( const T& item )
