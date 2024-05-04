@@ -125,9 +125,11 @@ class HashTable
      * */
     bool universalHashTableMethod( const T& item, const bool& isAdded, const bool& isDeleted )
     {
-        //std::cout << item << " " << isAdded << " " << isDeleted << std::endl;
+        // Так как у метода сложность O(1), то вызов его еще раз сделает тогда сложность O(2) -> O(1)
+        if( isAdded && universalHashTableMethod( item, false, false ) )
+            return false;
 
-        if ( isAdded && ( ( float )_size >= ( 0.75 * ( float )_table.size() ) ) )
+        if( isAdded && ( ( float )_size >= ( 0.75 * ( float )_table.size() ) ) )
             reBuild();
 
         const size_t hashValue = _hsh( item );
@@ -137,18 +139,15 @@ class HashTable
 
         while( ( _table[hash]._state != CELL_EMPTY ) && ( cnt < _table.size() ) )
         {
-            //std::cout << hash << std::endl;
             if( ( _table[hash]._item == item ) && ( _table[hash]._state != CELL_DELETE) )
             {
                 if( isDeleted )
                     _table[hash]._state = CELL_DELETE;
-                //std::cout << item << " " << isAdded << " " << isDeleted << std::endl;
                 return ( ( !isAdded ) ? true : false);
             }
 
             if( isAdded && ( ( _table[hash]._state == CELL_DELETE ) && ( deletedItem.first ) ) )
             {
-                //std::cout << item << " in Added deleted item" << std::endl;
                 deletedItem = std::pair<bool, size_t>( false, hash );
                 break;  // Если бы попали на удаленную ячейку, сразу можно выйти
             }
@@ -158,10 +157,7 @@ class HashTable
         }
 
         if( !isAdded )  // Если мы не добавлеям новый элемент, то возвращаем false
-        {
-            //std::cout << item << " not Added" << std::endl;
             return false;
-        }
 
         hash = ( ( deletedItem.first ) ? hash : deletedItem.second );
         _table[hash] = Cell( std::move( item ), hashValue );
@@ -247,20 +243,21 @@ void testFromFile( const size_t& N, const size_t& id_tests )
         ires >> df[i][2];
     }
 
-    for( size_t i = 0; i < N; ++i )
-    {
-        std::cout << (i + 1) << " " << df[i][0] << " " << df[i][1] << " " << df[i][2] << std::endl;
-    }
+    //for( size_t i = 0; i < N; ++i )
+    //{
+    //    std::cout << (i + 1) << " " << df[i][0] << " " << df[i][1] << " " << df[i][2] << std::endl;
+    //}
     HashTable hashTable;
     for( size_t i = 0; i < N; ++i )
     {
+        std::string preControl = check( hashTable, '?', df[i][1] );
         std::string control = check( hashTable, df[i][0][0], df[i][1] );
         if( df[i][2] != control )
         {
-            hashTable.print();
+            //hashTable.print();
             std::cout << df[i][0] << " " << df[i][1] << std::endl;
             throw Fakap( "Test № " + std::to_string(I) + " i № " + std::to_string(i) + "\n\r--->" +
-                         " wait: " + df[i][2] + " out: " + control );
+                         " wait: " + df[i][2] + " out: " + control + " pre: " + preControl );
         }
         control.clear();
     }
@@ -450,6 +447,7 @@ int main()
     test4();
     test5();
     testFromFile( 50, 6 );
+    testFromFile( 20000, 7 );
 #else
     std::string cmd, item;
     HashTable hashTable;
