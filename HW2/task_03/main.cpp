@@ -1,7 +1,8 @@
 #include <iostream>
 #include <deque>
 #include <vector>
-
+#include <fstream>
+#include <queue>
 /*
 // Задача 3
 Постройте B-дерево минимального порядка t и выведите его по слоям. В качестве ключа используются числа, 
@@ -25,6 +26,8 @@
 #endif
 
 //// Код
+
+#if 0
 template <typename T = size_t>  // Взял с семинара
 bool defaultLess( const T &l, const T &r )
 {
@@ -123,7 +126,7 @@ class BTree
             node->_size = ( _order - 1 );
             for( size_t j = _size; j >= ( I + 1 ); --j )
             {
-                std::cout << j << std::endl;
+                //std::cout << j << std::endl;
                 _children[( j + 1 )] = _children[j];
             }
             _children[( I + 1 )] = buffer;
@@ -221,6 +224,173 @@ public:
         //std::cout << _root->_keys[0] << std::endl;
     }
 };
+#endif
+
+struct Node
+    {
+        size_t _order;
+        bool _isLeaf;
+        size_t _size;
+
+        std::vector<int> _keys;
+        std::vector<Node*> _children;
+
+        Node() = delete;
+        Node( const size_t& order, const bool& isLeaf ) : 
+            _order(order), _isLeaf(isLeaf), _size(0)
+        {
+            _keys.resize( ( ( 2 * _order ) - 1 ) );
+            _children.resize(( 2 * _order ));
+        }
+        ~Node(){}
+};
+
+template<typename T = int>
+class BTree
+{
+public:
+    BTree(size_t order) : _root(nullptr), _order(order) {}
+
+    void push(const T& key)
+    {
+        if (_root == nullptr)
+        {
+            _root = new Node(_order, true);
+            _root->_keys[0] = key;
+            _root->_size = 1;
+        }
+        else
+        {
+            if (_root->_size == (2 * _order - 1))
+            {
+                Node* newRoot = new Node(_order, false);
+                newRoot->_children[0] = _root;
+                splitChild(newRoot, _root, 0);
+                _root = newRoot;
+            }
+            insertNonFull(_root, key);
+        }
+    }
+
+    void printByLevel()
+    {
+        if (_root == nullptr)
+        {
+            std::cout << "Tree is emptyn";
+            return;
+        }
+
+        std::queue<Node*> q;
+        q.push(_root);
+
+        while (!q.empty())
+        {
+            int nodeCount = q.size();
+
+            while (nodeCount > 0)
+            {
+                Node* node = q.front();
+                q.pop();
+
+                for (size_t i = 0; i < node->_size; ++i)
+                {
+                    std::cout << node->_keys[i] << " ";
+                }
+
+                if (!node->_isLeaf)
+                {
+                    for (size_t i = 0; i <= node->_size; ++i)
+                    {
+                        q.push(node->_children[i]);
+                    }
+                }
+
+                --nodeCount;
+            }
+
+            std::cout << std::endl;
+        }
+    }
+
+private:
+    Node* _root;
+    size_t _order;
+
+    void insertNonFull(Node* node, const T& key)
+    {
+        int i = node->_size - 1;
+
+        if (node->_isLeaf)
+        {
+            while (i >= 0 && key < node->_keys.at(i))
+            {
+                node->_keys.at(i + 1) = node->_keys.at(i);
+                --i;
+            }
+
+            node->_keys.at(i + 1) = key;
+            node->_size++;
+        }
+        else
+        {
+            while (i >= 0 && key < node->_keys.at(i))
+            {
+                --i;
+            }
+
+            ++i;
+
+            if (node->_children.at(i)->_size == 2 * _order - 1)
+            {
+                splitChild(node, node->_children[i], i);
+
+                if (key > node->_keys.at(i))
+                {
+                    ++i;
+                }
+            }
+            insertNonFull(node->_children[i], key);
+        }
+    }
+
+    void splitChild(Node* parent, Node* child, size_t index)
+    {
+        Node* newChild = new Node(_order, child->_isLeaf);
+        newChild->_size = _order - 1;
+
+        for (size_t i = 0; i < _order - 1; ++i)
+        {
+            newChild->_keys[i] = child->_keys[i + _order];
+        }
+
+        if (!child->_isLeaf)
+        {
+            for (size_t i = 0; i < _order; ++i)
+            {
+                newChild->_children[i] = child->_children[i + _order];
+            }
+        }
+
+        child->_size = _order - 1;
+
+        for (int i = parent->_size; i > index; --i)
+        {
+            parent->_children[i + 1] = parent->_children[i];
+        }
+
+        parent->_children[index + 1] = newChild;
+
+        for (int i = parent->_size - 1; i >= index; --i)
+        {
+            parent->_keys[i + 1] = parent->_keys[i];
+        }
+
+        parent->_keys[index] = child->_keys[_order - 1];
+        parent->_size++;
+    }
+
+};
+
 
 //// Тест
 #ifdef MAKETEST
@@ -230,7 +400,7 @@ void test1()
     BTree tree(2);
     for( size_t i = 0; i < 10; ++i )
         tree.push(i);
-    tree.printLevels();
+    tree.printByLevel();
 }
 
 void test2()
@@ -239,9 +409,9 @@ void test2()
     BTree tree(4);
     for( size_t i = 0; i < 10; ++i )
         tree.push(i);
-    tree.printLevels();
+    tree.printByLevel();
 }
-
+#if 0
 void test3()
 {
     std::cout << "--------------------------" << std::endl;
@@ -288,6 +458,32 @@ void test5()
     tree.printLevels();
 }
 
+class FileNotOpen : public std::exception
+{
+public:
+    explicit FileNotOpen(const std::string &msg) : m_msg(msg) {}
+    const char *what() const noexcept override { return m_msg.c_str(); }
+private:
+    std::string m_msg;
+};
+
+void test6()
+{
+    //std::cout << "--------------------------" << std::endl;
+    BTree tree(4);
+    std::ifstream in("./input/in11.txt", (std::ios::binary | std::ios::in));
+    if( !in )
+        throw FileNotOpen("input/in11.txt");
+
+    size_t key = 0;
+    while( in >> key)
+    {
+        tree.push(key);
+    }
+    tree.printLevels();
+
+}
+#endif
 #endif
 
 int main()
@@ -295,9 +491,10 @@ int main()
 #ifdef MAKETEST
     test1();
     test2();
-    test3();
-    test4();
-    test5();
+    //test3();
+    //test4();
+    //test5();
+    //test6();
 #else
     size_t order = 0;
     std::cin >> order;
