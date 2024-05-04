@@ -7,68 +7,90 @@
 #include <stdint.h>
 
 /*
-// Задача x.x
+// Задача 5
+Напишите две функции для создания архива из одного файла и извлечения файла из архива.
+Метод архивирует данные из потока original
+'''C++
+void Encode(IInputStream& original, IOutputStream& compressed);
+'''
+Метод восстанавливает оригинальные данные
+'''C++
+void Decode(IInputStream& compressed, IOutputStream& original);
+'''
+где:
+'''C++
+typedef char byte;
+
+interface IInputStream {
+// Возвращает false, если поток закончился
+virtual bool Read(byte& value) = 0;
+};
+
+interface IOutputStream {
+virtual void Write(byte value) = 0;
+};
+'''
+В архиве сохраняйте дерево Хаффмана и код Хаффмана от исходных данных. Дерево Хаффмана требуется хранить
+эффективно - не более 10 бит на каждый 8-битный символ. В контест необходимо отправить .cpp файл содержащий
+функции Encode, Decode, а также включающий файл Huffman.h. Тестирующая программа выводит размер сжатого
+файла в процентах от исходного.
+Пример минимального решения:
+'''C++
+#include "Huffman.h"
+
+static void copyStream(IInputStream&input, IOutputStream& output) {
+byte value;
+while(input.Read(value)) { output.Write(value); }
+}
+
+void Encode(IInputStream& original, IOutputStream& compressed) {
+copyStream(original, compressed);
+}
+
+void Decode(IInputStream& compressed, IOutputStream& original) {
+copyStream(compressed, original);
+}
+'''
 */
 
 // На локальной машине, чтобы поверить
-#define MAKETEST
+//#define MAKETEST
 #ifdef MAKETEST
 #include <cassert>
 
 typedef char byte;
-
 class IInputStream
 {
     std::ifstream& _in;
-
 public:
     IInputStream( std::ifstream& in) : _in(in) {}
-    
-    bool Read( byte& value )
-    {
-        return ( ( _in.eof() ) ? false : ( (bool)( _in.get(value) ) ) );
-        //if( _in.eof() )
-        //    return false;
-        //_in.get(value);
-        //return true;
-    }
+    bool Read( byte& value ) { return ( ( _in.eof() ) ? false : ( (bool)( _in.get(value) ) ) ); }
 };
 
 class IOutputStream
 {
     std::ofstream& _out;
-
 public:
     IOutputStream( std::ofstream& out ) : _out(out) {}
-    
-    void Write( byte value )
-    {
-        _out << value;
-    }
+    void Write( const byte& value ) { _out << value; }
 };
-
 #else
 #include "Huffman.h"
 #endif
 
-class bitistream
+class BitIstream
 {
-    // Поток
     IInputStream& _stream;
-
-    // Количество байт
     byte _currentByte;
-
-    // Количество бит в текущем байте
     char _bitsRead;
 
 public:
-    bitistream( IInputStream & stream ) : _stream(stream), _bitsRead(0) {}
+    BitIstream( IInputStream& stream ) : _stream(stream), _bitsRead(0) {}
 
-    // Чтение бит. Вернет false в случае конца чтения
     bool read(  bool& value )
     {
-        if( _bitsRead == 0 ) {
+        if( _bitsRead == 0 )
+        {
             byte tmp = 0;
             if( !_stream.Read(tmp) )
                 return false;
@@ -88,21 +110,15 @@ public:
     }
 };
 
-class bitostream
+class BitOstream
 {
-    // Поток
     IOutputStream&  _stream;
-
-    // Количество байт
     byte _currentByte;
-
-    // Количество бит в текущем байте
     char _bitsWritten;
 
 public:
-    bitostream( IOutputStream& stream ) : _stream(stream), _bitsWritten(0) {}
+    BitOstream( IOutputStream& stream ) : _stream(stream), _bitsWritten(0) {}
 
-    // Запись битов. Вернуть true, если успешно
     bool write( const bool& value )
     {
         _currentByte <<= 1;
@@ -118,312 +134,318 @@ public:
     }
 };
 
-
 struct Node
 {
-    byte value;
-    long weight;
-    Node* left;
-    Node* right;
+    byte _item;
+    size_t _weight;
+    Node* _l;
+    Node* _r;
 
-    Node() : value(0), weight(0), left(nullptr), right(nullptr) {}
+    Node( byte item = 0, size_t weight = 0, Node* left = nullptr, Node* right = nullptr ) : _item(item),
+            _weight(weight), _l(left), _r(right) {}
 
-    Node( byte value, long weight, Node* left, Node* right ) : value(value), weight(weight), left(left), 
-                                                               right(right) {}
-
+    ~Node()
+    {
+        if( this->_l != nullptr )
+            delete this->_l;
+        if( this->_r != nullptr )
+            delete this->_r;
+    }
 };
 
-bool nodeComparator( Node* L, Node* R )
+class HuffmanTreeEncode
 {
-    return ( L->weight < R->weight );
-}
+    Node* _root;
+    std::string _data;        // Данные из потока
+    byte _abcSize;            // Размер алфавита
+    byte _noUseBits;          // Неиспользованные биты
+    byte _countBytesForCode;  // Байты для хранения одного кода
+    size_t _maxSize;          // Максимальная длина кода
+    /* Для HuffmanTreeDecode аналогично */
+    std::map<byte, size_t> _frequencySymbol;
+    std::map<byte, size_t> _codes;
+    std::map<byte, char> _codesSize;
 
-// Строим дерево Хаффмана
-Node* buildTree( const std::map<byte, long>& freq )
-{
-    std::list<Node *> list;
-    for(  auto i = freq.begin(); i != freq.end(); ++i )
+    void treeInit()
     {
-        if( i->second != 0 )
+        std::list<Node*> list;
+        for(  auto i = _frequencySymbol.begin(); i != _frequencySymbol.end(); ++i )
+            if( i->second != 0 )
+                list.push_back( ( new Node( i->first, i->second, nullptr, nullptr ) ) );
+        Node *left, *right;
+        while( list.size() > 1 )
         {
-            Node* node = new Node( i->first, i->second, nullptr, nullptr );
-            list.push_back(node);
+            list.sort([]( Node* l, Node* r ){ return ( l->_weight < r->_weight ); });
+            left = list.front();
+            list.pop_front();
+            right = list.front();
+            list.pop_front();
+            list.push_back( ( new Node( 0, ( left->_weight + right->_weight ), left, right ) ) );
         }
+        _root = list.front();
     }
 
-    while( list.size() > 1 )
+    void calcCodes( Node* node, size_t code = 1 )
     {
-        list.sort(nodeComparator);
-        Node* left = list.front();
-        list.pop_front();
-        Node* right = list.front();
-        list.pop_front();
-        Node* father = new Node( 0, ( left->weight + right->weight ), left, right );
-        list.push_back(father);
-    }
-    Node* tree = list.front();
-    return tree;
-}
-
-
-// Получаем таблицу кодов символов
-void getCodes( Node* node, long code, std::map<byte, long>& codes )
-{
-    if( node->left == nullptr )
-    {
-        long result = 1;
-        while( code != 1 )
+        if( node->_l == nullptr )
         {
-            result <<= 1;
-            result |= ( code & 1 );
-            code >>= 1;
-        }
-        codes[node->value] = result;
-        return;
-    }
-
-    getCodes( node->left, code << 1, codes );
-    getCodes( node->right, ( ( code << 1 ) + 1 ), codes );
-}
-
-
-
-void printTree( Node* node, int depth, const std::map<byte, long>& codes )
-{
-    if( node->left != nullptr )
-    {
-        printTree( node->right, depth + 1, codes );
-        for( int i = 0; i < ( depth * 3 ); ++i )
-            std::cout << ' ';
-        std::cout << 0 << '\n';
-        printTree( node->left, depth + 1, codes );
-        return;
-    }
-    for( int i = 0; i < ( depth * 3 ); ++i )
-        std::cout << ' ';
-    std::cout << node->value << " (";
-    long code = codes.at(node->value);
-    while( code != 1 )
-    {
-        std::cout << ( code & 1 );
-        code >>= 1;
-    }
-    std::cout << ")\n";
-}
-
-void deleteTree( Node* node )
-{
-    if( node == nullptr )
-        return;
-    deleteTree(node->right);
-    deleteTree(node->left);
-    delete node;
-}
-
-
-void fixTree( Node* node )
-{
-    if(node == nullptr)
-        return;
-
-    if( ( ( node->left != nullptr ) && ( node->right == nullptr ) ) )
-    {
-        deleteTree(node->left);
-        node->left = nullptr;
-        return;
-    }
-
-    fixTree(node->left);
-    fixTree(node->right);
-}
-
-void countCodeLengths( const std::map<byte, long>& codes, std::map<byte, char>& codeLengths )
-{
-    for( auto i = codes.begin(); i != codes.end(); ++i )
-    {
-        codeLengths[i->first] = 0;
-        if( i->second != 0 )
-        {
-            long code = i->second;
+            size_t result = 1;
             while( code != 1 )
             {
-                codeLengths[i->first]++;
+                result <<= 1;
+                result |= ( code & 1 );
                 code >>= 1;
             }
+            _codes[node->_item] = result;
+            return;
+        }
+
+        calcCodes( node->_l, ( code << 1 ) );
+        calcCodes( node->_r, ( ( code << 1 ) + 1 ) );
+    }
+    
+    void countCodesSize()
+    {
+        for( auto i = _codes.begin(); i != _codes.end(); ++i )
+        {
+            _codesSize[i->first] = 0;
+            if( i->second != 0 )
+                for( size_t code = i->second; code != 1; code >>= 1 )
+                    _codesSize[i->first]++;
         }
     }
-}
+
+    void calcMaxSizeCode()
+    {
+        for(  auto i = _codesSize.begin(); i != _codesSize.end(); ++i )
+            if( i->second > _maxSize )
+                _maxSize = i->second;
+    }
+
+public:
+
+    HuffmanTreeEncode() : _root(nullptr), _data(""), _abcSize(0), _noUseBits(0), _countBytesForCode(0),
+                          _maxSize(0) {}
+
+    ~HuffmanTreeEncode()
+    {
+        delete _root;
+        _data.clear();
+        _frequencySymbol.clear();
+        _codes.clear();
+        _codesSize.clear();
+    }
+
+    void calcFrequency( IInputStream& original )
+    {
+        byte value = 0;
+        while( original.Read(value) )
+        {
+            _frequencySymbol[value]++;
+            _data += value;
+        }
+        treeInit();
+    }
+
+    void calcCodesHuffmans()
+    {
+        calcCodes(_root);
+        countCodesSize();
+        calcMaxSizeCode();
+    }
+
+    void calcOptions()
+    {
+        size_t buffer = 0;
+        for( auto i = _frequencySymbol.begin(); i != _frequencySymbol.end(); ++i )
+        {
+            if( i->second != 0 )
+                ++_abcSize;
+            buffer = ( ( buffer + ( i->second * _codesSize[i->first] ) ) % 8 );
+        }
+        _noUseBits = ( 8 - buffer );
+        _countBytesForCode = ( ( ( _maxSize % 8 ) == 0 ) ? ( _maxSize / 8 ) : ( ( _maxSize / 8 ) + 1 ) );
+    }
+
+    void encode( IOutputStream& compressed )
+    {
+        BitOstream bout(compressed);
+        compressed.Write(_noUseBits);
+        compressed.Write(_countBytesForCode);
+        compressed.Write(_abcSize);
+        for( auto i = _codes.begin(); i != _codes.end(); ++i )
+            if( _frequencySymbol[i->first] != 0 )
+            {
+                size_t j = 0;
+                compressed.Write( ( (byte)(i->first) ) );
+                for( size_t code = i->second; code != 1; code >>= 1, ++j)
+                    bout.write( ( code & 1 ) );
+                for( size_t count = ( _countBytesForCode * 8 ); j < count; ++j )
+                    bout.write(0);
+            }
+
+        for( size_t i = 0; i < _data.length(); ++i )
+            for( size_t code = _codes[_data[i]]; code != 1; code >>= 1)
+                bout.write( ( code & 1 ) );
+        for( size_t i = 0; i < _noUseBits; ++i )
+            bout.write(0);
+    }
+};
 
 void Encode( IInputStream& original, IOutputStream& compressed )
 {
-
-    std::map<byte, long> freq;
-
-    // Чтение файла
-    std::string file;
-    byte value = 0;
-    while( original.Read(value) )
-    {
-        freq[value]++;
-        file += value;
-    }
-    freq[value]--; // Убираем символ конца файла
-    file.erase(file.length() - 1);
-
-    // Строим коды символов
-    std::map<byte, long> codes;
-
-    Node* tree = buildTree(freq);  // Строим код Хаффмана по дереву
-    getCodes(tree, 1, codes);       // Получаем таблицу кодов
-    deleteTree(tree);               // Стираем дерево
-
-    // Считаем длину каждого кода и находим максимальный
-    std::map<byte, char> codeLengths;
-    countCodeLengths(codes, codeLengths);
-    char maxlen = 0; // Максимальная длина кода
-    for(  auto i = codeLengths.begin(); i != codeLengths.end(); ++i )
-        if( i->second > maxlen )
-            maxlen = i->second;
-
-    // Считаем размер алфавита и количество пустых бит
-    size_t encodedSize = 0;
-    byte alphabetSize = 0;
-    for( auto i = freq.begin(); i != freq.end(); ++i )
-    {
-        if( i->second != 0 )
-            alphabetSize++;
-        encodedSize = ( ( encodedSize + ( i->second * codeLengths[i->first] ) ) % 8 );
-    }
-    byte restBits = ( 8 - encodedSize ); // Кол-во неиспользованных бит
-
-    // Подсчет количества байтов для хранения одного кода
-    byte bytesPerCode = ( (maxlen % 8 == 0) ? (maxlen / 8) : (maxlen / 8 + 1) );
-
-    bitostream bout(compressed);
-
-/******************************/
-    // Запись кодированного файла
-    compressed.Write(restBits);
-    compressed.Write(bytesPerCode);
-    compressed.Write(alphabetSize);
-    for( auto i = codes.begin(); i != codes.end(); ++i )
-    {
-        if( freq[i->first] != 0 )
-        {
-            long code = i->second;
-            int j = 0;
-            compressed.Write( ( (byte)(i->first) ) );
-            for( ; code != 1; code >>= 1, ++j)
-                bout.write( ( code & 1 ) );
-
-            for( ; j < ( bytesPerCode * 8 ); ++j ) // Забивание до кратности bytesPerCode
-                bout.write(0);
-        }
-    }
-    // Кодировка файла
-    for( size_t i = 0; i < file.length(); ++i )
-    {
-        long code = codes[file[i]];
-        while( code != 1 )
-        {
-            bout.write( ( code & 1 ) );
-            code >>= 1;
-        }
-    }
-    for( int i = 0; i < restBits; ++i ) // Забивание до кратнотсти bytesPerCode
-        bout.write(0);
+    HuffmanTreeEncode tree;
+    tree.calcFrequency(original);
+    tree.calcCodesHuffmans();
+    tree.calcOptions();
+    tree.encode(compressed);
 }
 
+class HuffmanTreeDecode
+{
+    Node* _root;
+    byte _noUseBits;
+    byte _countBytesForCode;
+    uint8_t _abcSize;
+    std::string _data;
 
+    void readOptions( IInputStream& compressed )
+    {
+        compressed.Read(_noUseBits);
+        compressed.Read(_countBytesForCode);
+        byte tmp = 0;
+        compressed.Read(tmp);
+        _abcSize = ((uint8_t)(tmp));
+        if(_abcSize == 0)
+            _abcSize = 0xFF;
+    }
+    
+    void fillTree( IInputStream& compressed )
+    {
+        _root = new Node( 0, 0, nullptr, nullptr );
+        BitIstream bin(compressed);
+        byte symbol;
+        Node* node;
+
+        for( size_t i = 0; i < _abcSize; ++i )
+        {
+            node = _root;
+            compressed.Read(symbol);
+            for( size_t j = 0, count = ( 8 * _countBytesForCode ); j < count; ++j )
+            {
+                bool bit;
+                bin.read(bit);
+                if( ( (bit) ? node->_r : node->_l ) == nullptr )
+                    ( (bit) ? node->_r : node->_l ) = new Node( symbol, 0, nullptr, nullptr );
+                node = ( (bit) ? node->_r : node->_l );
+            }
+        }
+    }
+
+    void repairTree( Node* node )
+    {
+        if( node == nullptr )
+            return;
+
+        if( ( ( node->_l != nullptr ) && ( node->_r == nullptr ) ) )
+        {
+            if( node->_l != nullptr )
+                delete node->_l;
+            node->_l = nullptr;
+            return;
+        }
+
+        repairTree(node->_l);
+        repairTree(node->_r);
+    }
+
+public:
+    HuffmanTreeDecode() : _root(nullptr), _noUseBits(0), _countBytesForCode(0), _abcSize(0), _data("") {}
+    ~HuffmanTreeDecode()
+    {
+        delete _root;
+        _data.clear();
+    }
+
+    void buildHuffmanTree( IInputStream& compressed )
+    {
+        readOptions(compressed);
+        fillTree(compressed);
+        repairTree(_root);
+    }
+
+    void readDataFromFile( IInputStream& compressed )
+    {
+        byte symbol;
+        while( compressed.Read(symbol) )
+            _data += symbol;
+    }
+
+    void decode( IOutputStream& decoded )
+    {
+        Node* node = _root;
+        for( int i = 0, count = ( _data.length() - 1 ); i < count; ++i )
+            for( int j = 7; j >= 0; --j )
+            {
+                node = ( ( ( ( ( _data[i] >> j ) & 1 ) == 0 ) ) ? node->_l : node->_r );
+                if( node->_l == nullptr )
+                {
+                    decoded.Write(node->_item);
+                    node = _root;
+                }
+            }
+        for( int j = 7; j >= _noUseBits; --j )
+        {
+            node = ( ( ( ( _data[( _data.length() - 1 )] >> j ) & 1 ) == 0 ) ? node->_l : node->_r );
+            if( node->_l == nullptr )
+            {
+                decoded.Write(node->_item);
+                node = _root;
+            }
+        }
+    }
+};
 
 void Decode( IInputStream& compressed, IOutputStream& decoded )
 {
-    // Считывание информации про закодированный файл
-    byte restBits, bytesPerCode, tmp;
-    compressed.Read(restBits);
-    compressed.Read(bytesPerCode);
-    compressed.Read(tmp);
-    unsigned alphabetSize = (unsigned char) tmp;
-    if(alphabetSize == 0) // Сползло все
-        alphabetSize = 256;
-
-    // Строим дерево Хаффмана
-    Node* tree = new Node( 0, 0, nullptr, nullptr );
-    bitistream bin(compressed);
-    for( int i = 0; i < alphabetSize; ++i )
-    {
-        byte symbol;
-        Node* node = tree;
-        compressed.Read(symbol);
-        for( int j = 0; j < 8 * bytesPerCode; ++j )
-        {
-            bool bit1;
-            bin.read(bit1);
-            if(bit1 == 0)
-            {
-                if( node->left == nullptr )
-                    node->left = new Node( symbol, 0, nullptr, nullptr );
-                node = node->left;
-            }
-            else
-            {
-                if( node->right == nullptr )
-                    node->right = new Node( symbol, 0, nullptr, nullptr );
-                node = node->right;
-            }
-        }
-    }
-    fixTree(tree);
-
-    std::string filename;
-    byte symbol;
-    while( compressed.Read(symbol) )
-        filename += symbol;
-    filename.erase(filename.length() - 1);
-
-    // Разкодировка файла
-    Node* node = tree;
-    for( int i = 0; i < filename.length() - 1; ++i )
-    {
-        for( int j = 7; j >= 0; --j )
-        {
-            node = ( ( ( ( (filename[i] >> j) & 1 ) == 0 ) ) ? node->left : node->right );
-
-            if( node->left == nullptr )
-            {
-                decoded.Write(node->value);
-                node = tree;
-            }
-        }
-    }
-    for( int j = 7; j >= restBits; --j )
-    {
-        node = ( ( ( ( ( filename[filename.length() - 1] >> j ) & 1 ) == 0 ) ) ? node->left : node->right );
-
-        if( node->left == nullptr )
-        {
-            decoded.Write(node->value);
-            node = tree;
-        }
-    }
-
-    deleteTree(tree);
+    HuffmanTreeDecode tree;
+    tree.buildHuffmanTree(compressed);
+    tree.readDataFromFile(compressed);
+    tree.decode(decoded);
 }
 
 //// Тест
 #ifdef MAKETEST
+class FileNotOpen : public std::exception
+{
+public:
+    explicit FileNotOpen(const std::string &msg) : m_msg(msg) {}
+    const char *what() const noexcept override { return m_msg.c_str(); }
+private:
+    std::string m_msg;
+};
+
 int main()
 {
-    std::ifstream _original("test.txt");
-    std::ofstream _compressed1("encoded.txt");
+    std::ifstream _original("testFile/test.txt");
+    if( !_original )
+        throw FileNotOpen( "testFile/test.txt" );
+    std::ofstream _compressed1("testFile/encoded.txt");
+    if( !_compressed1 )
+        throw FileNotOpen( "testFile/encoded.txt" );
+
     IInputStream original(_original);
     IOutputStream compressed1(_compressed1);
     Encode(original, compressed1);
     _compressed1.close();
     _original.close();
 
-    std::ifstream _compressed2("encoded.txt");
-    std::ofstream _decoded("decoded.txt");
+    std::ifstream _compressed2("testFile/encoded.txt");
+    if( !_compressed2 )
+        throw FileNotOpen( "testFile/encoded.txt" );
+    std::ofstream _decoded("testFile/decoded.txt");
+    if( !_decoded )
+        throw FileNotOpen( "testFile/decoded.txt" );
     IInputStream compressed2(_compressed2);
     IOutputStream decoded(_decoded);
     Decode(compressed2, decoded);
