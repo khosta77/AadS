@@ -16,7 +16,6 @@
 #include <cassert>
 
 typedef char byte;
-//typedef bool bit;
 
 class IInputStream
 {
@@ -27,10 +26,11 @@ public:
     
     bool Read( byte& value )
     {
-        if( _in.eof() )
-            return false;
-        _in.get(value);
-        return true;
+        return ( ( _in.eof() ) ? false : ( (bool)( _in.get(value) ) ) );
+        //if( _in.eof() )
+        //    return false;
+        //_in.get(value);
+        //return true;
     }
 };
 
@@ -139,7 +139,7 @@ bool nodeComparator( Node* L, Node* R )
 }
 
 // Строим дерево Хаффмана
-Node* buildTree( std::map<byte, long> freq )
+Node* buildTree( const std::map<byte, long>& freq )
 {
     std::list<Node *> list;
     for(  auto i = freq.begin(); i != freq.end(); ++i )
@@ -220,22 +220,6 @@ void deleteTree( Node* node )
     delete node;
 }
 
-void countCodeLengths( const std::map<byte, long>& codes, std::map<byte, char>& codeLengths )
-{
-    for( auto i = codes.begin(); i != codes.end(); ++i )
-    {
-        codeLengths[i->first] = 0;
-        if( i->second != 0 )
-        {
-            long code = i->second;
-            while( code != 1 )
-            {
-                codeLengths[i->first]++;
-                code >>= 1;
-            }
-        }
-    }
-}
 
 void fixTree( Node* node )
 {
@@ -251,6 +235,23 @@ void fixTree( Node* node )
 
     fixTree(node->left);
     fixTree(node->right);
+}
+
+void countCodeLengths( const std::map<byte, long>& codes, std::map<byte, char>& codeLengths )
+{
+    for( auto i = codes.begin(); i != codes.end(); ++i )
+    {
+        codeLengths[i->first] = 0;
+        if( i->second != 0 )
+        {
+            long code = i->second;
+            while( code != 1 )
+            {
+                codeLengths[i->first]++;
+                code >>= 1;
+            }
+        }
+    }
 }
 
 void Encode( IInputStream& original, IOutputStream& compressed )
@@ -311,14 +312,11 @@ void Encode( IInputStream& original, IOutputStream& compressed )
         {
             long code = i->second;
             int j = 0;
-            compressed.Write(byte(i->first));
-            while( code != 1 )
-            {
-                bout.write(code & 1);
-                code >>= 1;
-                ++j;
-            }
-            for( ; j < bytesPerCode * 8; ++j ) // Забивание до кратности bytesPerCode
+            compressed.Write( ( (byte)(i->first) ) );
+            for( ; code != 1; code >>= 1, ++j)
+                bout.write( ( code & 1 ) );
+
+            for( ; j < ( bytesPerCode * 8 ); ++j ) // Забивание до кратности bytesPerCode
                 bout.write(0);
         }
     }
@@ -328,7 +326,7 @@ void Encode( IInputStream& original, IOutputStream& compressed )
         long code = codes[file[i]];
         while( code != 1 )
         {
-            bout.write(code & 1);
+            bout.write( ( code & 1 ) );
             code >>= 1;
         }
     }
@@ -377,25 +375,20 @@ void Decode( IInputStream& compressed, IOutputStream& decoded )
     }
     fixTree(tree);
 
-    // Чтение файла
-    std::string file;
+    std::string filename;
     byte symbol;
     while( compressed.Read(symbol) )
-    {
-        file += symbol;
-    }
-    file.erase(file.length() - 1);
+        filename += symbol;
+    filename.erase(filename.length() - 1);
 
     // Разкодировка файла
     Node* node = tree;
-    for( int i = 0; i < file.length() - 1; ++i )
+    for( int i = 0; i < filename.length() - 1; ++i )
     {
         for( int j = 7; j >= 0; --j )
         {
-            if( ( (file[i] >> j) & 1 ) == 0 )
-                node = node->left;
-            else
-                node = node->right;
+            node = ( ( ( ( (filename[i] >> j) & 1 ) == 0 ) ) ? node->left : node->right );
+
             if( node->left == nullptr )
             {
                 decoded.Write(node->value);
@@ -405,10 +398,8 @@ void Decode( IInputStream& compressed, IOutputStream& decoded )
     }
     for( int j = 7; j >= restBits; --j )
     {
-        if( ( ( file[file.length() - 1] >> j ) & 1 ) == 0 )
-            node = node->left;
-        else
-            node = node->right;
+        node = ( ( ( ( ( filename[filename.length() - 1] >> j ) & 1 ) == 0 ) ) ? node->left : node->right );
+
         if( node->left == nullptr )
         {
             decoded.Write(node->value);
@@ -441,4 +432,5 @@ int main()
     return 0;
 }
 #endif
+
 
