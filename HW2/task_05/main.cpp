@@ -142,7 +142,7 @@ bool nodeComparator( Node* L, Node* R )
 Node* buildTree( std::map<byte, long> freq )
 {
     std::list<Node *> list;
-    for( /*std::map<byte, long>::iterator*/ auto i = freq.begin(); i != freq.end(); ++i )
+    for(  auto i = freq.begin(); i != freq.end(); ++i )
     {
         if( i->second != 0 )
         {
@@ -222,7 +222,7 @@ void deleteTree( Node* node )
 
 void countCodeLengths( const std::map<byte, long>& codes, std::map<byte, char>& codeLengths )
 {
-    for( /*std::map<byte, long>::const_iterator*/ auto i = codes.begin(); i != codes.end(); ++i )
+    for( auto i = codes.begin(); i != codes.end(); ++i )
     {
         codeLengths[i->first] = 0;
         if( i->second != 0 )
@@ -280,14 +280,14 @@ void Encode( IInputStream& original, IOutputStream& compressed )
     std::map<byte, char> codeLengths;
     countCodeLengths(codes, codeLengths);
     char maxlen = 0; // Максимальная длина кода
-    for( /*std::map<byte, char>::iterator*/ auto i = codeLengths.begin(); i != codeLengths.end(); ++i )
+    for(  auto i = codeLengths.begin(); i != codeLengths.end(); ++i )
         if( i->second > maxlen )
             maxlen = i->second;
 
     // Считаем размер алфавита и количество пустых бит
     size_t encodedSize = 0;
     byte alphabetSize = 0;
-    for( /*std::map<byte, long>::iterator*/ auto i = freq.begin(); i != freq.end(); ++i )
+    for( auto i = freq.begin(); i != freq.end(); ++i )
     {
         if( i->second != 0 )
             alphabetSize++;
@@ -305,7 +305,7 @@ void Encode( IInputStream& original, IOutputStream& compressed )
     compressed.Write(restBits);
     compressed.Write(bytesPerCode);
     compressed.Write(alphabetSize);
-    for( /*std::map<byte, long>::iterator*/ auto i = codes.begin(); i != codes.end(); ++i )
+    for( auto i = codes.begin(); i != codes.end(); ++i )
     {
         if( freq[i->first] != 0 )
         {
