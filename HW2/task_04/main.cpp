@@ -56,7 +56,7 @@ class AVLTree
         Node( const T& item ) : _item(item), _height(1), _sizeNodes(1), _l(nullptr) , _r(nullptr) {}
     };
 
-    Node* _root = nullptr;
+    Node* _root;
     bool (*_cmp)( const T&, const T& );
 
     inline uint8_t getHeight( Node* node ) const { return ( ( node != nullptr ) ? node->_height : 0 ); }
@@ -80,9 +80,9 @@ class AVLTree
         bufferNode->_r = node;
 
         fixNodes(node);
-        fixHeight(node);
         fixNodes(bufferNode);
         fixHeight(bufferNode);
+        fixHeight(node);
         return bufferNode;
     }
 
@@ -93,16 +93,15 @@ class AVLTree
         bufferNode->_l = node;
 
         fixNodes(node);
-        fixHeight(node);
         fixNodes(bufferNode);
         fixHeight(bufferNode);
+        fixHeight(node);
         return bufferNode;
     }
 
     Node* balancing( Node* node )
     {
         fixHeight(node);
-        fixNodes(node);
         if( getBalanceFactor(node) == 2 )
         {
             if( getBalanceFactor(node->_r) < 0 )
@@ -136,42 +135,65 @@ class AVLTree
         return balancing(node);
     }
 
-    Node* findMin( Node* node )
-    {
-        return ( node->_l ? findMin(node->_l) : node );
-    }
+    inline Node* findMin( Node* node ) { return ( ( node->_l != nullptr ) ? findMin(node->_l) : node ); }
 
     Node* popMin( Node* node )
     {
-        if( node->_l == 0 )
+        if( node->_l == nullptr )
             return node->_r;
 
         node->_l = popMin(node->_l);
-        --node->_sizeNodes;
+        --(node->_sizeNodes);
 
         return balancing(node);
     }
 
-    Node* pop( Node* node, const int& position )
+    Node* getMinNode( Node* left, Node* right )
     {
-        if( node == nullptr )
+        Node* min = findMin(right);
+        min->_r = popMin(right);
+        min->_l = left;
+        fixNodes(min);
+        return balancing(min);
+    }
+
+    Node* isSizeEqDiff( Node* node, std::stack<Node*>& nodes )
+    {
+        Node* left = node->_l;
+        Node* right = node->_r;
+        T item = node->_item;
+        delete node;
+
+        if( right != nullptr )
+            return getMinNode( left, right );
+
+        if( left != nullptr )
+            return left;
+
+        if( nodes.empty() )
             return nullptr;
-        if( position >= node->_sizeNodes )
-            return node;
 
-        int current = 0;
-        std::stack<Node*> nodes;
+        node = nodes.top();
+        nodes.pop();
+        ( ( _cmp( item, node->_item ) ) ? node->_l : node->_r ) = nullptr;
+        --(node->_sizeNodes);
+        return node;
+    }
 
-        for( ;; )
+    Node* findPositionNode( Node* node, int position, std::stack<Node*>& nodes )
+    {
+        for( int current = 0, sizeNode = 0, buffer = 0;; )
         {
-            int sizeNode = getSizeNode(node->_r), buffer = ( position - current );
+            sizeNode = getSizeNode(node->_r);
+            buffer = ( position - current );
             if( buffer > sizeNode )
             {
                 nodes.push(node);
                 node = node->_l;
                 current += ( sizeNode + 1 );
             }
-            else if( buffer < sizeNode )
+            
+            if( buffer < sizeNode )
             {
                 if( node->_r == nullptr )
                     break;
@@ -179,92 +201,66 @@ class AVLTree
                 nodes.push(node);
                 node = node->_r;
             }
-            else
-            {
-                Node* left = node->_l;
-                Node* right = node->_r;
-                T _item = node->_item;
-
-                delete node;
-
-                if( right != nullptr )
-                {
-                    Node* min = findMin(right);
-                    min->_r = popMin(right);
-                    min->_l = left;
-                    fixNodes(min);
-                    node = balancing(min);
-                    break;
-                }
-
-                if( left != nullptr )
-                {
-                    node = left;
-                    break;
-                }
-
-                if( nodes.empty() )
-                    return nullptr;
-
-                node = nodes.top();
-                nodes.pop();
-                ( ( _cmp( _item, node->_item ) ) ? node->_l : node->_r ) = nullptr;
-                --node->_sizeNodes;
-                break;
-            }
+            
+            if( buffer == sizeNode )
+                return isSizeEqDiff( node, nodes );
         }
+        return node;
+    }
 
+    Node* updateRootAfterPop( Node* node, std::stack<Node*>& nodes )
+    {
         while( !nodes.empty() )
         {
             Node* bufferNode = nodes.top();
-            --bufferNode->_sizeNodes;
-
-            ( ( _cmp( bufferNode->_item, node->_item ) ) ? bufferNode->_l : bufferNode->_r ) = node;
-
+            --(bufferNode->_sizeNodes);
+            ( ( _cmp( node->_item, bufferNode->_item ) ) ? bufferNode->_l : bufferNode->_r ) = node;
             node = balancing(bufferNode);
             nodes.pop();
         }
-
         return node;
     }
+
+    Node* pop( Node* node, int position )
+    {
+        if( node == nullptr )
+            return nullptr;
+        if( position >= node->_sizeNodes )
+            return node;
+
+        std::stack<Node*> nodes;
+        node = findPositionNode( node, position, nodes );
+        return updateRootAfterPop( node, nodes);
+    }
+
 public:
     AVLTree( bool ( *cmp )( const T& l, const T& r ) = defaultLess ) : _root(nullptr), _cmp(cmp) {}
     ~AVLTree()
     {
         if( _root == nullptr )
             return;
-        
-        std::stack<Node*> nodes;
-        Node* current = _root, *last = nullptr;
-        while( ( ( !nodes.empty() ) || ( current != nullptr ) ) )
+
+        std::stack<Node*> buffer;
+        buffer.push(_root); 
+        while( !buffer.empty() )
         {
-            if( current != nullptr)
-            {
-                nodes.push(current);
-                current = current->_l;
-            }
-            else
-            {
-                current = nodes.top();
-                if( ( ( current->_l != nullptr ) && ( last != current->_r ) ) )
-                    current = current->_r;
-                else
-                {
-                    nodes.pop();
-                    last = current;
-                    delete current;
-                    current = nullptr;
-                }
-            }
-        }
+            Node* it = buffer.top();
+            buffer.pop();
+ 
+            if ( it->_r )
+                buffer.push( it->_r );
+            if ( it->_l )
+                buffer.push( it->_l );
+            delete it;
+        }       
     }
 
     void push( const T& item, int& position ) { _root = push( _root, item, position ); }
 
-    void pop( const int& position ) { _root = pop(_root, position); } 
+    void pop( int position ) { _root = pop(_root, position); } 
 };
 
-template <typename T = int>  // Взял с семинара
+template <typename T = int>
 std::vector<T> buildSolders( std::istream &input )
 {
     size_t size;
@@ -273,23 +269,16 @@ std::vector<T> buildSolders( std::istream &input )
     AVLTree avlt;
     std::vector<T> result;
 
-    int item = 0;
-    int command = 0, position = 0;
-
-    for( size_t i = 0; i < size; ++i )
+    for ( T command = 0, posORitem = 0, position = 0; input >> command >> posORitem; position = 0 )
     {
-        input >> command;
         switch( command )
         {
         case 1:
-            position = 0;
-            input >> item;
-            avlt.push( item, position );
+            avlt.push( posORitem, position );
             result.push_back(position);
             break;
         case 2:
-            input >> position;
-            avlt.pop(position);
+            avlt.pop(posORitem);
             break;
         }
         
@@ -308,12 +297,10 @@ void printVector( const std::vector<int>& vec )
 template<typename T = int>
 std::vector<T> getVectorFromStream( std::istream &input )
 {
-    size_t N = 0;
-    input >> N;
-    T item = 0;
-    std::vector<T> vec(N);
-    for( size_t i = 0; i < N; ++i )
-        input >> vec[i];
+    std::vector<T> vec;
+    T buffer = 0;
+    while( input >> buffer )
+        vec.push_back(buffer);
     return vec;
 }
 
@@ -351,6 +338,8 @@ void makeTest( const std::string& input, const std::string& output )
     auto result = buildSolders(in);
     auto result_true = getVectorFromStream( out );
     assert( result == result_true );
+    result.clear();
+    result_true.clear();
 }
 
 #endif
@@ -359,9 +348,11 @@ int main()
 {
 #ifdef MAKETEST
     makeTest( "input/in01.txt", "output/out01.txt" );
+    makeTest( "input/in02.txt", "output/out02.txt" );
 #else
     auto vec = buildSolders(std::cin);
     printVector(vec);
+    vec.clear();
 #endif
     return 0;
 }
