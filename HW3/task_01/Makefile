@@ -1,7 +1,12 @@
 TARGET=./a.out
 CC=clang++
 SRCS=\
-	./main.cpp
+	./main.cpp \
+	./IGraph.cpp \
+	./ListGraph.cpp \
+	./MatrixGraph.cpp \
+	./ArcGraph.cpp \
+	./SetGraph.cpp 
 STD=-std=c++20
 
 all: clean $(TARGET)
