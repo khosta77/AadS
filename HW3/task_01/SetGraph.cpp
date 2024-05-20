@@ -1,5 +1,4 @@
 #include "SetGraph.h"
-#include <iostream>
 
 SetGraph::SetGraph( const IGraph& rhs ) : _graphSet(rhs.VerticesCount())
 {

@@ -2,7 +2,6 @@
 #define _CPP_AADS_HW3_TASK_01_LISTGRAPH_H_
 
 #include "IGraph.h"
-#include <list>
 
 class ListGraph : public IGraph
 {
