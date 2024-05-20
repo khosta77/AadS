@@ -11,6 +11,7 @@ class SetGraph : public IGraph
 public:
     SetGraph( size_t size ) : _graphSet(size) {}
     SetGraph( const IGraph& rhs );
+    ~SetGraph();
 
     void AddEdge( int from, int to ) override;
 

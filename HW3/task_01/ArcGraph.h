@@ -11,6 +11,7 @@ class ArcGraph : public IGraph
 public:
     ArcGraph( size_t verticesCount ) : _verticesCount(verticesCount) {}
     ArcGraph( const IGraph& rhs );
+    ~ArcGraph() { _graphPair.clear(); }
 
     void AddEdge( int from, int to ) override;
 

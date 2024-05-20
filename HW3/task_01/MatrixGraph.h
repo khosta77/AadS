@@ -11,6 +11,7 @@ class MatrixGraph : public IGraph
 public:
     MatrixGraph( size_t size );
     MatrixGraph( const IGraph& rhs );
+    ~MatrixGraph();
 
     void AddEdge( int from, int to ) override;
 

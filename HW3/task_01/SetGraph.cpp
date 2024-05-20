@@ -1,4 +1,5 @@
 #include "SetGraph.h"
+#include <iostream>
 
 SetGraph::SetGraph( const IGraph& rhs ) : _graphSet(rhs.VerticesCount())
 {
@@ -7,35 +8,39 @@ SetGraph::SetGraph( const IGraph& rhs ) : _graphSet(rhs.VerticesCount())
             _graphSet[i].insert(j);
 }
 
+SetGraph::~SetGraph()
+{
+    for( size_t i = 0; i < _graphSet.size(); ++i )
+        _graphSet[i].clear();
+    _graphSet.clear();
+}
+
 void SetGraph::AddEdge( int from, int to )
 {
-    if( ( from > _graphSet.size() ) || ( to > _graphSet.size() ) )
+    if( ( from >= _graphSet.size() ) || ( to >= _graphSet.size() ) )
         throw OutOfRangeFromTo( from, to, _graphSet.size() );
     _graphSet[from].insert(to);
 }
 
 std::vector<int> SetGraph::GetNextVertices( int vertex ) const
 {
-    if( vertex > _graphSet.size() )
+    if( vertex >= _graphSet.size() )
         throw OutOfRangeVertex( vertex, _graphSet.size() );
     std::vector<int> nextVertices;
-    for( const auto& to : _graphSet[vertex] )
-        nextVertices.push_back(to);
+    for( auto it = _graphSet[vertex].begin(); it != _graphSet[vertex].end(); ++it )
+        nextVertices.push_back(*it);
     return nextVertices;
 }
 
 std::vector<int> SetGraph::GetPrevVertices( int vertex ) const
 {
-    if( vertex > _graphSet.size() )
+    if( vertex >= _graphSet.size() )
         throw OutOfRangeVertex( vertex, _graphSet.size() );
-    std::vector<int> result;
-    for( size_t from = 0; from < _graphSet.size(); ++from )
-        if( _graphSet[from].find(vertex) != _graphSet[from].end() )
-        {
-            result.push_back(from);
-            break;
-        }
-    return result;
+    std::vector<int> prevVertices;
+    for( size_t i = 0, I = _graphSet.size(); i < I; ++i )
+        if( _graphSet[i].find(vertex) != _graphSet[i].end() )
+            prevVertices.push_back(i);
+    return prevVertices;
 }
 
 

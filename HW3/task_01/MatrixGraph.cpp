@@ -15,22 +15,29 @@ MatrixGraph::MatrixGraph( const IGraph& rhs ) : _graphMatrix(rhs.VerticesCount()
     for( size_t i = 0, I = rhs.VerticesCount(); i < size; ++i )
     {
         _graphMatrix[i].resize(I);
-        auto neighbors = rhs.GetNextVertices(i);
-        for( const auto& j : neighbors )
-            _graphMatrix[i][j] = 1;
+        std::vector<int> neighbors = rhs.GetNextVertices(i);
+        for( size_t j = 0, J = neighbors.size(); j < J; ++j )
+            _graphMatrix[i][neighbors[j]] = 1;
     }
+}
+
+MatrixGraph::~MatrixGraph()
+{
+    for( size_t i = 0; i < _graphMatrix.size(); ++i )
+        _graphMatrix[i].clear();
+    _graphMatrix.clear();
 }
 
 void MatrixGraph::AddEdge( int from, int to )
 {
-    if( ( from > _graphMatrix.size() ) || ( to > _graphMatrix.size() ) )
+    if( ( from >= _graphMatrix.size() ) || ( to >= _graphMatrix.size() ) )
         throw OutOfRangeFromTo( from, to, _graphMatrix.size() );
     _graphMatrix[from][to] = 1;
 }
 
 std::vector<int> MatrixGraph::GetNextVertices(int vertex) const
 {
-    if( vertex > _graphMatrix.size() )
+    if( vertex >= _graphMatrix.size() )
         throw OutOfRangeVertex( vertex, _graphMatrix.size() );
     std::vector<int> nextVertices;
     for( size_t i = 0, I = _graphMatrix.size(); i < I; ++i )
@@ -41,7 +48,7 @@ std::vector<int> MatrixGraph::GetNextVertices(int vertex) const
 
 std::vector<int> MatrixGraph::GetPrevVertices(int vertex) const
 {
-    if( vertex > _graphMatrix.size() )
+    if( vertex >= _graphMatrix.size() )
         throw OutOfRangeVertex( vertex, _graphMatrix.size() );
     std::vector<int> prevVertices;
     for( size_t i = 0, I = _graphMatrix.size(); i < I; ++i )

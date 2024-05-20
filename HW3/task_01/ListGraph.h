@@ -2,7 +2,7 @@
 #define _CPP_AADS_HW3_TASK_01_LISTGRAPH_H_
 
 #include "IGraph.h"
-#include <queue>
+#include <list>
 
 class ListGraph : public IGraph
 {
@@ -11,6 +11,7 @@ class ListGraph : public IGraph
 public:
     ListGraph( size_t size ) : _graphList(size) {}
     ListGraph( const IGraph& rhs );
+    ~ListGraph();
 
     void AddEdge( int from, int to ) override;
 
