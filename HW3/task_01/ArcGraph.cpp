@@ -12,6 +12,7 @@ void ArcGraph::AddEdge( int from, int to )
     if( ( ( from >= _verticesCount ) || ( to >= _verticesCount ) ) )
         throw OutOfRangeFromTo( from, to, _verticesCount );
     _graphPair.emplace_back(from, to);
+    _graphPair.emplace_back(to, from);
 }
 
 std::vector<int> ArcGraph::GetNextVertices( int vertex ) const

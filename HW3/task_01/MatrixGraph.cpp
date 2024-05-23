@@ -33,6 +33,7 @@ void MatrixGraph::AddEdge( int from, int to )
     if( ( from >= _graphMatrix.size() ) || ( to >= _graphMatrix.size() ) )
         throw OutOfRangeFromTo( from, to, _graphMatrix.size() );
     _graphMatrix[from][to] = 1;
+    _graphMatrix[to][from] = 1;
 }
 
 std::vector<int> MatrixGraph::GetNextVertices(int vertex) const

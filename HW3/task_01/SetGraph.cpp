@@ -19,6 +19,7 @@ void SetGraph::AddEdge( int from, int to )
     if( ( from >= _graphSet.size() ) || ( to >= _graphSet.size() ) )
         throw OutOfRangeFromTo( from, to, _graphSet.size() );
     _graphSet[from].insert(to);
+    _graphSet[to].insert(from);
 }
 
 std::vector<int> SetGraph::GetNextVertices( int vertex ) const

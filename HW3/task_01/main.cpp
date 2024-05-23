@@ -45,14 +45,14 @@ struct IGraph {
 
 //// Тест
 #ifdef MAKETEST
-const std::string TEST_RESULT_01 = "0, 1\n0, 2\n0, 3\n1, 3\n2, 3\n2, 4\n";
+const std::string TEST_RESULT_01 = "0, 1\n0, 2\n0, 3\n1, 0\n1, 3\n2, 0\n2, 3\n2, 4\n3, 0\n3, 1\n3, 2\n4, 2\n";
 
 const std::vector<int> TEST_RESULT_02 = { 1, 2, 3 };
-const std::vector<int> TEST_RESULT_03 = { 3 };
-const std::vector<int> TEST_RESULT_04 = { 3, 4 };
+const std::vector<int> TEST_RESULT_03 = { 0, 3 };
+const std::vector<int> TEST_RESULT_04 = { 0, 3, 4 };
 
-const std::vector<int> TEST_RESULT_05 = { 0 };
-const std::vector<int> TEST_RESULT_06 = { 0 };
+const std::vector<int> TEST_RESULT_05 = { 0, 3 };
+const std::vector<int> TEST_RESULT_06 = { 0, 3, 4 };
 const std::vector<int> TEST_RESULT_07 = { 0, 1, 2 };
 const std::vector<int> TEST_RESULT_08 = { 2 };
 

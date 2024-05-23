@@ -18,6 +18,7 @@ void ListGraph::AddEdge( int from, int to )
     if( ( from >= _graphList.size() ) || ( to >= _graphList.size() ) )
         throw OutOfRangeFromTo( from, to, _graphList.size() );
     _graphList[from].push_back(to);
+    _graphList[to].push_back(from);
 }
 
 std::vector<int> ListGraph::GetNextVertices( int vertex ) const
