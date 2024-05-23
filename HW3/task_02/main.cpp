@@ -14,7 +14,7 @@
 // Задача 2.1 Количество различных путей
 Дан невзвешенный неориентированный граф. В графе может быть несколько кратчайших путей между какими-то
 вершинами. Найдите количество различных кратчайших путей между заданными вершинами.
-//// Требования: сложность O(V+E). 
+//// Требования: сложность O(V+E).
 //// Формат ввода.
 v: кол-во вершин (макс. 50000),
 n: кол-во ребер (макс. 200000),
@@ -48,7 +48,7 @@ class OutOfRangeFromTo : public IGraphException
 {
 public:
     explicit OutOfRangeFromTo( const int& from, const int& to, const int& size ) : IGraphException(
-            "Индекс для " + ( ( from < size ) ? ( "from(" + std::to_string(from) + ") " ) : ( 
+            "Индекс для " + ( ( from < size ) ? ( "from(" + std::to_string(from) + ") " ) : (
             "to(" + std::to_string(to) + ") " ) ) + " больше чем " + std::to_string(size)
     ) {}
 };
@@ -75,8 +75,7 @@ struct IGraph
     //virtual std::vector<int> GetPrevVertices( int vertex ) const = 0;  // Данный метод не используется.
 };
 
-#if 0
-// Хотел в начале взять из задания 1, но решил не перегружать файл
+#if 1
 class ListGraph : public IGraph
 {
     std::vector<std::vector<int>> _graphList;
@@ -95,6 +94,7 @@ public:
         if( ( from >= _graphList.size() ) || ( to >= _graphList.size() ) )
             throw OutOfRangeFromTo( from, to, _graphList.size() );
         _graphList[from].push_back(to);
+        _graphList[to].push_back(from);
     }
 
     size_t VerticesCount() const override { return _graphList.size(); }
@@ -109,7 +109,7 @@ public:
 #endif
 
 #if 0
-class MatrixGraph : public IGraph
+class MatrixGraph : public IGraph  // Не рационально в данной задачи использовать
 {
     std::vector<std::vector<bool>> _graphMatrix;
 
@@ -122,7 +122,7 @@ public:
             std::fill( _graphMatrix[i].begin(), _graphMatrix[i].end(), 0 );
         }
     }
-    
+
     ~MatrixGraph()
     {
         for( size_t i = 0; i < _graphMatrix.size(); ++i )
@@ -135,6 +135,7 @@ public:
         if( ( from >= _graphMatrix.size() ) || ( to >= _graphMatrix.size() ) )
             throw OutOfRangeFromTo( from, to, _graphMatrix.size() );
         _graphMatrix[from][to] = 1;
+        _graphMatrix[to][from] = 1;
     }
 
     size_t VerticesCount() const override { return _graphMatrix.size(); }
@@ -153,7 +154,7 @@ public:
 #endif
 
 #if 0
-class SetGraph : public IGraph
+class SetGraph : public IGraph  // Не рационально в данной задачи использовать
 {
     std::vector<std::set<int>> _graphSet;
 
@@ -172,6 +173,7 @@ public:
         if( ( from >= _graphSet.size() ) || ( to >= _graphSet.size() ) )
             throw OutOfRangeFromTo( from, to, _graphSet.size() );
         _graphSet[from].insert(to);
+        _graphSet[to].insert(from);
     }
 
     size_t VerticesCount() const override { return _graphSet.size(); }
@@ -188,8 +190,8 @@ public:
 };
 #endif
 
-#if 1
-class ArcGraph : public IGraph
+#if 0
+class ArcGraph : public IGraph  // Не рационально в данной задачи использовать
 {
     std::vector<std::pair<int, int>> _graphPair;
     size_t _verticesCount;
@@ -203,6 +205,7 @@ public:
         if( ( ( from >= _verticesCount ) || ( to >= _verticesCount ) ) )
             throw OutOfRangeFromTo( from, to, _verticesCount );
         _graphPair.emplace_back(from, to);
+        _graphPair.emplace_back(to, from);
     }
 
     size_t VerticesCount() const override { return _verticesCount; }
@@ -230,7 +233,7 @@ std::ostream &operator<<( std::ostream &os, const IGraph& graph )  // Для о�
 
 size_t findMinsPaths( const IGraph& graph, const size_t& from, const size_t& to )
 {
-    std::vector<size_t> counterMin( graph.VerticesCount(), 0 ), distance( graph.VerticesCount(), 
+    std::vector<size_t> counterMin( graph.VerticesCount(), 0 ), distance( graph.VerticesCount(),
                                                                     std::numeric_limits<size_t>::max() );
     counterMin[from] = 1;
     distance[from] = 0;
@@ -261,7 +264,7 @@ size_t run( std::istream &in )
 {
     size_t size = 0, from = 0, to = 0;
     in >> size;
-    ArcGraph graph(size);
+    ListGraph graph(size);
     in >> size;
     for( size_t i = 0; ( ( i < size ) && ( in >> from >> to ) ); ++i )
         graph.AddEdge( from, to );
