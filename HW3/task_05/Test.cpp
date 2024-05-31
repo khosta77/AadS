@@ -15,6 +15,7 @@ void Test::tester( const size_t& verticesCount )
 	auto graph = fillGraph(verticesCount); 
     double PrimeValue = DSU::calcTotalTime( DSU::findPrima( graph ) );
 	double enumerationValue = enumeration( graph);
+	// По Приму значение меньше, значение в векторе будет > 1
     testResult.push_back( enumerationValue / PrimeValue );
 }
 
