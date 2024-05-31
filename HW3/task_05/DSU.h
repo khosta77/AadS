@@ -15,5 +15,4 @@ public:
     static double calcTotalTime( const std::vector<std::pair<int, double>>& roads );
 };
 
-
 #endif  // _CPP_AADS_HW3_TASK_05_DSU_H_

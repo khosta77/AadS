@@ -35,7 +35,7 @@ std::vector<std::pair<int, double>> DSU::findPrima( const IGraph& graph )
 
 double DSU::calcTotalTime( const std::vector<std::pair<int, double>>& roads )
 {
-    int totalTime = 0;
+    double totalTime = 0;
     for( const auto& pair : roads )
         totalTime += pair.second;
     return totalTime;
