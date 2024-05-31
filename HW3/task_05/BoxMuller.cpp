@@ -7,18 +7,17 @@ double BoxMuller::genDouble()
 	return ( random / _MAX_DOUBLE );
 }
 
-BoxMuller::BoxMuller( const size_t& count ) : _MAX_DOUBLE( std::numeric_limits<double>::max() )
+BoxMuller::BoxMuller( const size_t& size ) : _MAX_DOUBLE( std::numeric_limits<double>::max() )
 {
-	for( size_t i = 0; i < count; ++i )
+	for( size_t i = 0; i < size; ++i )
     {
 		double x = 0.0, y = 0.0, s = 0.0;
-        do
+        while( ( ( s > 1 ) || ( s == 0 ) ) )
 		{
             x = genDouble();
             y = genDouble();
             s = ( std::pow( x, 2 ) + std::pow( y, 2 ) );
 		}
-        while( ( ( s > 1 ) || ( s == 0 ) ) );
         z.emplace_back(std::pair<double, double>( ( x * std::sqrt(-2 * std::log(s) / s) ),
 											      ( y * std::sqrt(-2 * std::log(s) / s) ) ));
     }

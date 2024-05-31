@@ -17,7 +17,7 @@ class BoxMuller
     std::vector<std::pair<double, double>> z;
 
 public:
-    BoxMuller( const size_t& count );
+    BoxMuller( const size_t& size );
     double operator()( const size_t& from, const size_t& to );
 };
 
