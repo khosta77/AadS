@@ -36,142 +36,19 @@
 #if 1  // 0, если в Яндекс контесте
 #include "ListGraph.h"
 #include "DSU.h"
+#include "utils.h"
+#include "Test.h"
 #include <cassert>
 #include <random>
 #include <limits>
 #include <ctime>
 
-double enumeration( const IGraph& graph )
-{
-    int verticesCount = graph.VerticesCount();
-    std::vector<int> vertices;
-    for (int i = 0; i < verticesCount; i++) {
-        vertices.push_back(i);
-    }
-
-    double matrix[verticesCount][verticesCount];
-    for( size_t i = 0; i < verticesCount; ++i )
-        for( size_t j = 0; j < verticesCount; ++j )
-            matrix[i][j] = 0;
-    for( size_t i = 0; i < verticesCount; ++i  )
-        for( auto it : graph.GetNextVertices(i) )
-            matrix[i][it.first] = it.second;
-
-    std::vector<double> weights;
-    do
-    {
-        double weight = 0;
-        double edgeWeight = 0;
-        for( int i = 0; i < verticesCount; ++i )
-        {
-            edgeWeight = matrix[i][( i + 1)];
-            if( edgeWeight != -1 )
-                weight += edgeWeight;
-        }
-
-        weights.push_back(weight);
-    }
-    while( std::next_permutation( vertices.begin(), vertices.end() ) );
-
-    return *std::min_element(weights.begin(), weights.end());
-}
-
-size_t run( std::istream &in )
-{
-    int size = 0;
-    in >> size;
-    ListGraph graph(size);
-    in >> size;
-    for (int i = 0, from = 0, to = 0, time = 0; ( ( i < size ) && ( in >> from >> to >> time ) ); ++i)
-        graph.AddEdge( ( from - 1 ), ( to - 1 ), time );
-    auto result = DSU::findPrima(graph);
-    std::cout << enumeration(graph) << ' ' << DSU::calcTotalTime(result) << std::endl;
-    return DSU::calcTotalTime(result);
-}
-
-class FileNotOpen : public std::exception
-{
-public:
-    explicit FileNotOpen(const std::string &msg) : m_msg(msg) {}
-    const char *what() const noexcept override { return m_msg.c_str(); }
-private:
-    std::string m_msg;
-};
-
-void makeTest( const std::string& input, const size_t& resultTrue )
-{
-    std::ifstream in( input );
-    if( !in )
-        throw FileNotOpen( input );
-
-    size_t result = run( in );
-    assert( ( result == resultTrue ) );
-}
-
-// https://ru.wikipedia.org/wiki/Преобразование_Бокса_—_Мюллера
-class BoxMuller
-{
-    const double MAX_DOUBLE;
-    double genDouble()
-    {
-        std::random_device engine;
-        double ran =  std::uniform_real_distribution<double>( 0, MAX_DOUBLE )(engine);
-        return ( ran / MAX_DOUBLE );
-    }
-
-    std::vector<std::pair<double, double>> z;
-
-public:
-    BoxMuller( const size_t& count ) : MAX_DOUBLE(std::numeric_limits<double>::max())
-    {
-        for( size_t i = 0; i < count; ++i )
-        {
-            double x = 0.0, y = 0.0, s = 0.0;
-            do
-            {
-                x = genDouble();
-                y = genDouble();
-                s = ( std::pow( x, 2 ) + std::pow( y, 2 ) );
-            }
-            while( ( ( s > 1 ) || ( s == 0 ) ) );
-            z.emplace_back(std::pair<double, double>( ( x * std::sqrt(-2 * std::log(s) / s) ),
-                                                      ( y * std::sqrt(-2 * std::log(s) / s) ) ));
-        }
-        //for( const auto& it : points )
-        //    std::cout << it.first << ' ' << it.second << std::endl;
-    }
-
-    double operator()( const size_t& from, const size_t& to )
-    {
-        if( from == to )
-            return 0;
-        return std::sqrt(
-            std::pow( z[from].first - z[to].second, 2 ) + std::pow( z[from].second - z[to].second, 2 )
-        );
-    }
-};
-
-class Test
-{
-
-public:
-    Test( const size_t& count )
-    {
-
-    }
-
-    void launch()
-    {
-        
-    }
-};
-
 int main()
 {
     makeTest( "./input/in01.txt", 7 );
     makeTest( "./input/in02.txt", 107923 );
-    Test test;
-    test.launch();
+    Test test( 100, 2, 10 );
+    test.make();
     return 0;
 }
 #else
