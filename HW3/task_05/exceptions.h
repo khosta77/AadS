@@ -47,4 +47,13 @@ public:
     ) {}
 };
 
+class FileNotOpen : public std::exception
+{
+public:
+    explicit FileNotOpen(const std::string &msg) : m_msg(msg) {}
+    const char *what() const noexcept override { return m_msg.c_str(); }
+private:
+    std::string m_msg;
+};
+
 #endif  // _EXCEPTIONS_H_
